@@ -1,13 +1,23 @@
-import Layout from "./components/layout"
-import { PlusIcon, DocumentTextIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline"
+"use client";
+
+import { useRouter } from "next/navigation";
+import Layout from "./components/layout";
+import {
+  PlusIcon,
+  DocumentTextIcon,
+  ClipboardDocumentListIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Home() {
+  const router = useRouter();
   return (
     <Layout>
       {/* Section A: Welcome Banner */}
       <section className="card mb-6">
         <h1 className="text-3xl font-bold mb-2">Welcome, Victor!</h1>
-        <p className="text-gray-600">Ready to create your next form? Get started with just a few clicks.</p>
+        <p className="text-gray-600">
+          Ready to create your next form? Get started with just a few clicks.
+        </p>
       </section>
 
       {/* Section B: Recent Activity */}
@@ -35,7 +45,10 @@ export default function Home() {
           <PlusIcon className="h-6 w-6 mr-2" />
           Create a New Form
         </button>
-        <button className="btn btn-primary flex items-center justify-center text-lg">
+        <button
+          className="btn btn-primary flex items-center justify-center text-lg"
+          onClick={() => router.push("/all-responses")}
+        >
           <DocumentTextIcon className="h-6 w-6 mr-2" />
           View All Responses
         </button>
@@ -61,6 +74,5 @@ export default function Home() {
         </div>
       </section>
     </Layout>
-  )
+  );
 }
-
