@@ -11,12 +11,14 @@ import PrivacyPermissions from "../../components/form-settings/PrivacyPermission
 import ResponseCollection from "../../components/form-settings/ResponseCollection";
 import WebhookModal from "../../components/form-settings/WebhookModal";
 import { Settings } from "@/constants/types";
+import { useSearchParams } from "next/navigation";
 
 const { Header, Content, Footer } = Layout;
-const { TabPane } = Tabs;
 
 export default function FormSettingsPage() {
-  const [formTitle, setFormTitle] = useState("Untitled Form");
+  const param = useSearchParams();
+
+  const [formTitle, setFormTitle] = useState<string | null>("Untitled Form");
   const [settings, setSettings] = useState<Settings>({
     general: {
       title: "",
@@ -42,6 +44,9 @@ export default function FormSettingsPage() {
   useEffect(() => {
     // TODO: Fetch form settings from API
     // For now, we'll use mock data
+    const formTitle = param.get("form");
+    setFormTitle(formTitle);
+
     setSettings({
       general: {
         title: "Untitled Form",

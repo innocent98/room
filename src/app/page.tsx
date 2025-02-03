@@ -41,13 +41,16 @@ export default function Home() {
 
       {/* Section C: Quick Actions */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <button className="btn btn-primary flex items-center justify-center text-lg">
+        <button
+          className="btn btn-primary flex items-center justify-center text-lg"
+          onClick={() => router.push("/create")}
+        >
           <PlusIcon className="h-6 w-6 mr-2" />
           Create a New Form
         </button>
         <button
           className="btn btn-primary flex items-center justify-center text-lg"
-          onClick={() => router.push("/all-responses")}
+          onClick={() => router.push("/responses")}
         >
           <DocumentTextIcon className="h-6 w-6 mr-2" />
           View All Responses

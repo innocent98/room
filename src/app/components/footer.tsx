@@ -10,7 +10,7 @@ export default function Footer() {
         <Link href="/terms" className="text-sm text-gray-600 hover:text-gray-900">
           Terms of Service
         </Link>
-        <Link href="/support" className="text-sm text-gray-600 hover:text-gray-900">
+        <Link href="/help" className="text-sm text-gray-600 hover:text-gray-900">
           Contact Support
         </Link>
       </div>

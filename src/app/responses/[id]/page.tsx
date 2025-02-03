@@ -7,7 +7,6 @@ import {
   Tabs,
   Button,
   Dropdown,
-  Menu,
   message,
   MenuProps,
   TabsProps,
@@ -23,12 +22,14 @@ import Link from "next/link";
 import FiltersAndSearch from "../../components/responses/FiltersAndSearch";
 import ResponsesTableTab from "../../components/responses/ResponseTableTab";
 import SummaryTab from "../../components/responses/SummaryTab";
+import { useSearchParams } from "next/navigation";
 
 const { Header, Content, Footer } = Layout;
-const { TabPane } = Tabs;
 
 export default function ResponseDataPage() {
-  const [formName, setFormName] = useState("Untitled Form");
+  const param = useSearchParams();
+
+  const [formName, setFormName] = useState<string | null>("Untitled Form");
   const [responses, setResponses] = useState<any>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -41,7 +42,8 @@ export default function ResponseDataPage() {
   useEffect(() => {
     // TODO: Fetch form name and responses from API
     // For now, we'll use mock data
-    setFormName("Customer Feedback Survey");
+    const formTitle = param.get("form");
+    setFormName(formTitle);
     setResponses([
       // Mock response data
       {
@@ -118,7 +120,7 @@ export default function ResponseDataPage() {
     <Layout className="min-h-screen">
       <Header className="bg-white px-4 flex items-center justify-between">
         <div className="flex items-center">
-          <Link href="/dashboard">
+          <Link href="/responses">
             <Button icon={<ArrowLeftOutlined />} className="mr-4">
               Back
             </Button>

@@ -17,14 +17,14 @@ export default function Sidebar() {
           <ChartBarIcon className="h-5 w-5" />
           <span>Responses</span>
         </Link>
-        <Link href="/analytics" className="flex items-center space-x-2 text-gray-700 hover:text-primary">
+        {/* <Link href="/analytics" className="flex items-center space-x-2 text-gray-700 hover:text-primary">
           <ChartPieIcon className="h-5 w-5" />
           <span>Analytics</span>
         </Link>
         <Link href="/settings" className="flex items-center space-x-2 text-gray-700 hover:text-primary">
           <Cog6ToothIcon className="h-5 w-5" />
           <span>Settings</span>
-        </Link>
+        </Link> */}
       </nav>
     </aside>
   )

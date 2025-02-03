@@ -8,6 +8,7 @@ import Link from "next/link";
 import DetailedInsightsSection from "@/app/components/analytics/DetailedInsightsSection";
 import ExportOptions from "@/app/components/analytics/ExportOptions";
 import OverviewSection from "@/app/components/analytics/OverviewSection";
+import { useParams, useSearchParams } from "next/navigation";
 
 const { Header, Content, Footer } = Layout;
 
@@ -63,23 +64,28 @@ const mockAnalyticsData = {
   },
 };
 
-export default function AnalyticsPage({
-  params,
-}: {
-  params: { formId: string };
-}) {
+export default function AnalyticsPage() {
+  const params = useParams();
+  const param = useSearchParams();
+
   const [analyticsData, setAnalyticsData] = useState(mockAnalyticsData);
 
   useEffect(() => {
     // TODO: Fetch real analytics data based on formId
-    // setAnalyticsData(fetchedData)
+    const formTitle = param.get("form");
+
+    setAnalyticsData((prev) => ({
+      ...prev,
+      formName: formTitle || "Untitled Form",
+      // Fetch real analytics data here...
+    }));
   }, []);
 
   return (
     <Layout className="min-h-screen">
       <Header className="bg-white px-4 flex items-center justify-between">
         <div className="flex items-center">
-          <Link href={`/responses/${params.formId}`}>
+          <Link href={`/responses/${params.id}`}>
             <Button icon={<ArrowLeftOutlined />} className="mr-4">
               Back
             </Button>

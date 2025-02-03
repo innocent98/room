@@ -52,6 +52,7 @@ module.exports = {
       fontFamily: {
         sora: ["Sora", "sans-serif"],
         inter: ["Inter", "sans-serif"],
+        poppins: ["Poppins", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

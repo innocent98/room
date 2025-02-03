@@ -16,10 +16,10 @@ export default function Header() {
               <PlusCircleIcon className="h-5 w-5 mr-1" />
               Create Form
             </Link>
-            <Link href="/settings" className="flex items-center">
+            {/* <Link href="/settings" className="flex items-center">
               <Cog6ToothIcon className="h-5 w-5 mr-1" />
               Settings
-            </Link>
+            </Link> */}
             <Link href="/help" className="flex items-center">
               <QuestionMarkCircleIcon className="h-5 w-5 mr-1" />
               Help Center
