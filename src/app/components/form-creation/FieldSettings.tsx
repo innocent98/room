@@ -55,7 +55,7 @@ export default function FieldSettings({
       <Form.Item label="Required">
         <Switch
           key={field.required ? "true" : "false"}
-          defaultChecked={field.required}
+          defaultValue={field.required}
           onChange={(checked) => handleChange("required", checked)}
         />
       </Form.Item>
@@ -68,7 +68,7 @@ export default function FieldSettings({
             <Space key={index} className="mb-2 w-full">
               <Input
                 key={option}
-                value={option}
+                defaultValue={option}
                 onChange={(e) => handleOptionChange(index, e.target.value)}
                 placeholder={`Option ${index + 1}`}
                 className="flex-grow"
