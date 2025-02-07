@@ -1,7 +1,19 @@
-import { DatePicker, Select, Checkbox, Space } from "antd"
+import { DatePicker, Select, Checkbox, Space } from "antd";
 
-const { RangePicker } = DatePicker
-const { Option } = Select
+const { RangePicker } = DatePicker;
+const { Option } = Select;
+
+interface DataCustomizationProps {
+  dateRange: any;
+  onDateRangeChange: (dates: any, dateStrings: [string, string]) => void;
+  selectedColumns: string[];
+  onColumnChange: (value: string[]) => void;
+  filters: {
+    allResponses: boolean;
+    removeDuplicates: boolean;
+  };
+  onFilterChange: (filterName: string, checked: boolean) => void;
+}
 
 export default function DataCustomization({
   dateRange,
@@ -10,8 +22,8 @@ export default function DataCustomization({
   onColumnChange,
   filters,
   onFilterChange,
-}) {
-  const allColumns = ["respondent", "timestamp", "q1", "q2", "q3", "q4", "q5"] // Replace with actual column names
+}: DataCustomizationProps) {
+  const allColumns = ["respondent", "timestamp", "q1", "q2", "q3", "q4", "q5"]; // Replace with actual column names
 
   return (
     <div className="mb-6">
@@ -19,7 +31,11 @@ export default function DataCustomization({
       <Space direction="vertical" className="w-full">
         <div>
           <label className="block mb-1">Date Range:</label>
-          <RangePicker value={dateRange} onChange={onDateRangeChange} className="w-full" />
+          <RangePicker
+            value={dateRange}
+            onChange={onDateRangeChange}
+            className="w-full"
+          />
         </div>
         <div>
           <label className="block mb-1">Select Columns:</label>
@@ -39,18 +55,22 @@ export default function DataCustomization({
         </div>
         <div>
           <label className="block mb-1">Filters:</label>
-          <Checkbox checked={filters.allResponses} onChange={(e) => onFilterChange("allResponses", e.target.checked)}>
+          <Checkbox
+            checked={filters.allResponses}
+            onChange={(e) => onFilterChange("allResponses", e.target.checked)}
+          >
             Include all responses
           </Checkbox>
           <Checkbox
             checked={filters.removeDuplicates}
-            onChange={(e) => onFilterChange("removeDuplicates", e.target.checked)}
+            onChange={(e) =>
+              onFilterChange("removeDuplicates", e.target.checked)
+            }
           >
             Remove duplicate submissions
           </Checkbox>
         </div>
       </Space>
     </div>
-  )
+  );
 }
-

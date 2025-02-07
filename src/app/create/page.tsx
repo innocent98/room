@@ -26,7 +26,7 @@ const { Header, Sider, Content, Footer } = Layout;
 export default function FormCreationPage() {
   const [formTitle, setFormTitle] = useState("Untitled Form");
   const [formFields, setFormFields, { undo, redo, canUndo, canRedo }] =
-    useUndoableState<Field[]>([]);
+    useUndoableState<any | Field[]>([]);
   const [selectedField, setSelectedField] = useState<Field | null>(null);
 
   const moveField = useCallback(
@@ -143,7 +143,7 @@ export default function FormCreationPage() {
             <Sidebar addField={addField} />
           </Sider>
           <Content className="p-6 bg-gray-100">
-            {formFields.map((field: Field, index) => (
+            {formFields.map((field: Field, index: number) => (
               <FormPreview
                 key={field.id}
                 index={index}

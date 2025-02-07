@@ -1,5 +1,14 @@
 import { Input, Checkbox } from "antd"
 
+interface ExportSettingsProps {
+  fileName: string;
+  onFileNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  useCompression: boolean;
+  onCompressionChange: (e: any) => void;
+  emailReport: string;
+  onEmailReportChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
 export default function ExportSettings({
   fileName,
   onFileNameChange,
@@ -7,7 +16,7 @@ export default function ExportSettings({
   onCompressionChange,
   emailReport,
   onEmailReportChange,
-}) {
+}: ExportSettingsProps) {
   return (
     <div className="mb-6">
       <h2 className="text-lg font-semibold mb-2">Export Settings</h2>

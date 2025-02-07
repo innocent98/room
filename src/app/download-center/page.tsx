@@ -1,96 +1,107 @@
-"use client"
+"use client";
 
 import "@ant-design/v5-patch-for-react-19";
-import { useState, useEffect } from "react"
-import { Layout, Button, DatePicker, message, Progress } from "antd"
-import { ArrowLeftOutlined, DownloadOutlined, HistoryOutlined, EyeOutlined, ScheduleOutlined } from "@ant-design/icons"
-import Link from "next/link"
-import DataCustomization from "../components/download-center/DataCustomization"
-import ExportSettings from "../components/download-center/ExportSettings"
-import FileFormatSelection from "../components/download-center/FileFormatSelection"
-import PreviewModal from "../components/download-center/PreviewModal"
-import ScheduleReportModal from "../components/download-center/ScheduleReportModal"
+import { useState, useEffect, SetStateAction } from "react";
+import { Layout, Button, DatePicker, message, Progress } from "antd";
+import {
+  ArrowLeftOutlined,
+  DownloadOutlined,
+  HistoryOutlined,
+  EyeOutlined,
+  ScheduleOutlined,
+} from "@ant-design/icons";
+import Link from "next/link";
+import DataCustomization from "../components/download-center/DataCustomization";
+import ExportSettings from "../components/download-center/ExportSettings";
+import FileFormatSelection from "../components/download-center/FileFormatSelection";
+import PreviewModal from "../components/download-center/PreviewModal";
+import ScheduleReportModal from "../components/download-center/ScheduleReportModal";
 
-
-const { Header, Content, Footer } = Layout
-const { RangePicker } = DatePicker
+const { Header, Content, Footer } = Layout;
+const { RangePicker } = DatePicker;
 
 export default function DownloadCenter() {
-  const [formName, setFormName] = useState("Untitled Form")
-  const [selectedFormat, setSelectedFormat] = useState("pdf")
-  const [dateRange, setDateRange] = useState(null)
-  const [selectedColumns, setSelectedColumns] = useState([])
+  const [formName, setFormName] = useState("Untitled Form");
+  const [selectedFormat, setSelectedFormat] = useState("pdf");
+  const [dateRange, setDateRange] = useState(null);
+  const [selectedColumns, setSelectedColumns] = useState<any>([]);
   const [filters, setFilters] = useState({
     allResponses: true,
     removeDuplicates: false,
-  })
-  const [fileName, setFileName] = useState("")
-  const [useCompression, setUseCompression] = useState(false)
-  const [emailReport, setEmailReport] = useState("")
-  const [previewVisible, setPreviewVisible] = useState(false)
-  const [scheduleModalVisible, setScheduleModalVisible] = useState(false)
-  const [downloadProgress, setDownloadProgress] = useState(0)
+  });
+  const [fileName, setFileName] = useState("");
+  const [useCompression, setUseCompression] = useState(false);
+  const [emailReport, setEmailReport] = useState("");
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   useEffect(() => {
     // TODO: Fetch form name and available columns from API
-    setFormName("Customer Feedback Survey")
-    setSelectedColumns(["respondent", "timestamp", "q1", "q2", "q3"])
-  }, [])
+    setFormName("Customer Feedback Survey");
+    setSelectedColumns(["respondent", "timestamp", "q1", "q2", "q3"]);
+  }, []);
 
-  const handleFormatChange = (format) => {
-    setSelectedFormat(format)
-  }
+  const handleFormatChange = (format: SetStateAction<string>) => {
+    setSelectedFormat(format);
+  };
 
-  const handleDateRangeChange = (dates) => {
-    setDateRange(dates)
-  }
+  const handleDateRangeChange = (dates: SetStateAction<null>) => {
+    setDateRange(dates);
+  };
 
-  const handleColumnChange = (columns) => {
-    setSelectedColumns(columns)
-  }
+  const handleColumnChange = (columns: any) => {
+    setSelectedColumns(columns);
+  };
 
-  const handleFilterChange = (key, value) => {
-    setFilters({ ...filters, [key]: value })
-  }
+  const handleFilterChange = (key: any, value: any) => {
+    setFilters({ ...filters, [key]: value });
+  };
 
-  const handleFileNameChange = (e) => {
-    setFileName(e.target.value)
-  }
+  const handleFileNameChange = (e: {
+    target: { value: SetStateAction<string> };
+  }) => {
+    setFileName(e.target.value);
+  };
 
-  const handleCompressionChange = (e) => {
-    setUseCompression(e.target.checked)
-  }
+  const handleCompressionChange = (e: {
+    target: { checked: boolean | ((prevState: boolean) => boolean) };
+  }) => {
+    setUseCompression(e.target.checked);
+  };
 
-  const handleEmailReportChange = (e) => {
-    setEmailReport(e.target.value)
-  }
+  const handleEmailReportChange = (e: {
+    target: { value: SetStateAction<string> };
+  }) => {
+    setEmailReport(e.target.value);
+  };
 
   const handlePreview = () => {
-    setPreviewVisible(true)
-  }
+    setPreviewVisible(true);
+  };
 
   const handleDownload = () => {
     // TODO: Implement actual download functionality
-    message.success("Download started")
-    simulateDownload()
-  }
+    message.success("Download started");
+    simulateDownload();
+  };
 
   const handleScheduleReport = () => {
-    setScheduleModalVisible(true)
-  }
+    setScheduleModalVisible(true);
+  };
 
   const simulateDownload = () => {
-    let progress = 0
+    let progress = 0;
     const interval = setInterval(() => {
-      progress += 10
-      setDownloadProgress(progress)
+      progress += 10;
+      setDownloadProgress(progress);
       if (progress >= 100) {
-        clearInterval(interval)
-        message.success("Download completed")
-        setDownloadProgress(0)
+        clearInterval(interval);
+        message.success("Download completed");
+        setDownloadProgress(0);
       }
-    }, 500)
-  }
+    }, 500);
+  };
 
   return (
     <Layout className="min-h-screen">
@@ -106,7 +117,10 @@ export default function DownloadCenter() {
         <Button icon={<HistoryOutlined />}>Download History</Button>
       </Header>
       <Content className="p-6">
-        <FileFormatSelection selectedFormat={selectedFormat} onFormatChange={handleFormatChange} />
+        <FileFormatSelection
+          selectedFormat={selectedFormat}
+          onFormatChange={handleFormatChange}
+        />
         <DataCustomization
           dateRange={dateRange}
           onDateRangeChange={handleDateRangeChange}
@@ -125,17 +139,32 @@ export default function DownloadCenter() {
         />
         <div className="mt-6 flex justify-between items-center">
           <div>
-            <Button icon={<EyeOutlined />} onClick={handlePreview} className="mr-4">
+            <Button
+              icon={<EyeOutlined />}
+              onClick={handlePreview}
+              className="mr-4"
+            >
               Preview Data
             </Button>
-            <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownload} className="mr-4">
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={handleDownload}
+              className="mr-4"
+            >
               Download Now
             </Button>
             <Button icon={<ScheduleOutlined />} onClick={handleScheduleReport}>
               Schedule Report
             </Button>
           </div>
-          {downloadProgress > 0 && <Progress percent={downloadProgress} status="active" className="w-1/3" />}
+          {downloadProgress > 0 && (
+            <Progress
+              percent={downloadProgress}
+              status="active"
+              className="w-1/3"
+            />
+          )}
         </div>
       </Content>
       <Footer className="text-center">
@@ -153,13 +182,12 @@ export default function DownloadCenter() {
       <ScheduleReportModal
         visible={scheduleModalVisible}
         onClose={() => setScheduleModalVisible(false)}
-        onSchedule={(schedule) => {
-          console.log("Scheduled:", schedule)
-          message.success("Report scheduled successfully")
-          setScheduleModalVisible(false)
+        onSchedule={(schedule: any) => {
+          console.log("Scheduled:", schedule);
+          message.success("Report scheduled successfully");
+          setScheduleModalVisible(false);
         }}
       />
     </Layout>
-  )
+  );
 }
-

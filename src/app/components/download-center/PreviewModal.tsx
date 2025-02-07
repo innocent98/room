@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
 import { Modal, Table } from "antd"
 
-export default function PreviewModal({ visible, onClose, selectedColumns, dateRange, filters }) {
-  const [previewData, setPreviewData] = useState([])
+export default function PreviewModal({ visible, onClose, selectedColumns, dateRange, filters }:any) {
+  const [previewData, setPreviewData] = useState<any>([])
 
   useEffect(() => {
     if (visible) {
@@ -16,7 +16,7 @@ export default function PreviewModal({ visible, onClose, selectedColumns, dateRa
     }
   }, [visible])
 
-  const columns = selectedColumns.map((col) => ({
+  const columns = selectedColumns.map((col:any) => ({
     title: col.charAt(0).toUpperCase() + col.slice(1),
     dataIndex: col,
     key: col,

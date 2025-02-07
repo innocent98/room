@@ -1,11 +1,22 @@
-import { Radio, Space } from "antd"
-import { FilePdfOutlined, FileExcelOutlined, FileTextOutlined, AreaChartOutlined } from "@ant-design/icons"
+import { Radio, Space } from "antd";
+import {
+  FilePdfOutlined,
+  FileExcelOutlined,
+  FileTextOutlined,
+  AreaChartOutlined,
+} from "@ant-design/icons";
 
-export default function FileFormatSelection({ selectedFormat, onFormatChange }) {
+export default function FileFormatSelection({
+  selectedFormat,
+  onFormatChange,
+}: any) {
   return (
     <div className="mb-6">
       <h2 className="text-lg font-semibold mb-2">File Format</h2>
-      <Radio.Group value={selectedFormat} onChange={(e) => onFormatChange(e.target.value)}>
+      <Radio.Group
+        value={selectedFormat}
+        onChange={(e) => onFormatChange(e.target.value)}
+      >
         <Space direction="vertical">
           <Radio value="pdf">
             <FilePdfOutlined /> PDF (Summary Report)
@@ -22,6 +33,5 @@ export default function FileFormatSelection({ selectedFormat, onFormatChange }) 
         </Space>
       </Radio.Group>
     </div>
-  )
+  );
 }
-

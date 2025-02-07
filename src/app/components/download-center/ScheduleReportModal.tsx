@@ -1,16 +1,20 @@
-import { Modal, Form, Select, DatePicker, TimePicker, Button } from "antd"
+import { Modal, Form, Select, DatePicker, TimePicker, Button } from "antd";
 
-const { Option } = Select
+const { Option } = Select;
 
-export default function ScheduleReportModal({ visible, onClose, onSchedule }) {
-  const [form] = Form.useForm()
+export default function ScheduleReportModal({
+  visible,
+  onClose,
+  onSchedule,
+}: any) {
+  const [form] = Form.useForm();
 
   const handleSubmit = () => {
     form.validateFields().then((values) => {
-      onSchedule(values)
-      form.resetFields()
-    })
-  }
+      onSchedule(values);
+      form.resetFields();
+    });
+  };
 
   return (
     <Modal
@@ -45,11 +49,14 @@ export default function ScheduleReportModal({ visible, onClose, onSchedule }) {
         >
           <DatePicker className="w-full" />
         </Form.Item>
-        <Form.Item name="time" label="Time" rules={[{ required: true, message: "Please select a time" }]}>
+        <Form.Item
+          name="time"
+          label="Time"
+          rules={[{ required: true, message: "Please select a time" }]}
+        >
           <TimePicker format="HH:mm" className="w-full" />
         </Form.Item>
       </Form>
     </Modal>
-  )
+  );
 }
-
