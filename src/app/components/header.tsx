@@ -23,7 +23,7 @@ export default function Header() {
               ROOM
             </Link>
 
-            <div className="hidden md:block ml-10">
+            {/* <div className="hidden md:block ml-10">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
@@ -34,7 +34,7 @@ export default function Header() {
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
-            </div>
+            </div> */}
           </div>
 
           <nav className="flex items-center space-x-4">

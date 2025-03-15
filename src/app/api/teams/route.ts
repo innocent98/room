@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get all teams where the user is a member
     const teams = await prisma.team.findMany({
       where: {
         members: {
@@ -23,22 +24,39 @@ export async function GET(request: NextRequest) {
         },
       },
       include: {
+        _count: {
+          select: {
+            members: true,
+            forms: true,
+          },
+        },
         members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
+          where: {
+            userId: session.user.id,
+          },
+          select: {
+            role: true,
           },
         },
       },
+      orderBy: {
+        updatedAt: "desc",
+      },
     });
 
-    return NextResponse.json(teams);
+    // Transform the data to include the user's role in each team
+    const transformedTeams = teams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      description: team.description,
+      createdAt: team.createdAt,
+      updatedAt: team.updatedAt,
+      memberCount: team._count.members,
+      formCount: team._count.forms,
+      userRole: team.members[0]?.role || "VIEWER",
+    }));
+
+    return NextResponse.json(transformedTeams);
   } catch (error) {
     console.error("Error fetching teams:", error);
     return NextResponse.json(
@@ -51,7 +69,7 @@ export async function GET(request: NextRequest) {
 // Create a new team
 export async function POST(request: NextRequest) {
   try {
-    const session:any = await getServerSession(authOptions);
+    const session: any = await getServerSession(authOptions);
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

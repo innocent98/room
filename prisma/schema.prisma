@@ -23,13 +23,14 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  forms         Form[]
-  teamMembers   TeamMember[]
-  ownedTeams    Team[]           @relation("TeamOwner")
-  invitedBy     TeamInvitation[] @relation("InvitedBy")
-  subscriptions Subscription[]
+  accounts        Account[]
+  sessions        Session[]
+  forms           Form[]
+  teamMembers     TeamMember[]
+  ownedTeams      Team[]           @relation("TeamOwner")
+  teamInvitations TeamInvitation[] @relation("InvitedBy")
+  subscriptions   Subscription[]
+  teamActivities  TeamActivity[]
 }
 
 model Account {
@@ -102,16 +103,19 @@ model Response {
   id        String   @id @default(cuid())
   formId    String
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   answers Answer[]
 }
 
 model Answer {
-  id         String @id @default(cuid())
+  id         String   @id @default(cuid())
   value      String
   fieldId    String
   responseId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 
   field    Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   response Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
@@ -130,6 +134,7 @@ model Team {
   members     TeamMember[]
   forms       Form[]
   invitations TeamInvitation[]
+  activities  TeamActivity[]
 }
 
 model TeamMember {
@@ -150,9 +155,11 @@ model TeamInvitation {
   id          String   @id @default(cuid())
   teamId      String
   email       String
-  role        String   @default("VIEWER")
+  role        String   @default("VIEWER") // ADMIN, EDITOR, VIEWER
   status      String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  token       String?  @default(cuid())
   invitedById String
+  expires     DateTime @default(dbgenerated("NOW() + interval '7 days'"))
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -187,4 +194,16 @@ model Subscription {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan Plan @relation(fields: [planId], references: [id])
+}
+
+model TeamActivity {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  action    String // MEMBER_INVITED, MEMBER_JOINED, FORM_CREATED, etc.
+  details   Json? // Additional details about the action
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

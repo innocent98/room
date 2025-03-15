@@ -1,17 +1,40 @@
 import {
+  TeamOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SendOutlined,
+  UserAddOutlined,
+  UserDeleteOutlined,
+  FormOutlined,
+  UnlockOutlined,
+  LockOutlined,
+} from "@ant-design/icons";
+import {
   ArrowPathIcon,
   EnvelopeIcon,
-  UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import { Switch } from "antd";
+import {
+  Switch,
+  Typography,
+  Card,
+  Avatar,
+  Empty,
+  Pagination,
+  Spin,
+  List,
+} from "antd";
 import { motion } from "framer-motion";
 import {
   ChevronDownIcon,
   PencilIcon,
   TrashIcon,
-  ClockIcon,
+  Tag,
 } from "lucide-react";
-import React from "react";
+import { useSearchParams } from "next/navigation";
+import { format } from "date-fns";
+import React, { useEffect, useState } from "react";
+
+const { Title, Text } = Typography;
 
 interface Props {
   activeTab: string;
@@ -33,6 +56,21 @@ interface Props {
   setTeamSettings: (value: any) => void;
   handleSaveSettings: () => void;
   handleDeleteTeam: () => void;
+}
+
+interface TeamActivity {
+  id: string;
+  teamId: string;
+  userId: string;
+  action: string;
+  details: any;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string;
+  };
 }
 
 const fadeIn = {
@@ -61,6 +99,146 @@ const TeamMember = ({
   handleSaveSettings,
   handleDeleteTeam,
 }: Props) => {
+  const params = useSearchParams();
+  const teamId = params.get("id");
+
+  const [activities, setActivities] = useState<TeamActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 20,
+    total: 0,
+  });
+
+  useEffect(() => {
+    fetchActivities();
+  }, [teamId, pagination.current, pagination.pageSize]);
+
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const offset = (pagination.current - 1) * pagination.pageSize;
+      const response = await fetch(
+        `/api/teams/${teamId}/activities?limit=${pagination.pageSize}&offset=${offset}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch team activities");
+      }
+
+      const data = await response.json();
+      setActivities(data.activities);
+      setPagination({
+        ...pagination,
+        total: data.pagination.total,
+      });
+    } catch (error) {
+      console.error("Error fetching team activities:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getActivityIcon = (action: string) => {
+    switch (action) {
+      case "TEAM_CREATED":
+        return <TeamOutlined style={{ color: "#52c41a" }} />;
+      case "TEAM_UPDATED":
+        return <EditOutlined style={{ color: "#1890ff" }} />;
+      case "TEAM_DELETED":
+        return <DeleteOutlined style={{ color: "#ff4d4f" }} />;
+      case "MEMBER_INVITED":
+        return <SendOutlined style={{ color: "#722ed1" }} />;
+      case "MEMBER_JOINED":
+        return <UserAddOutlined style={{ color: "#52c41a" }} />;
+      case "MEMBER_REMOVED":
+        return <UserDeleteOutlined style={{ color: "#ff4d4f" }} />;
+      case "MEMBER_ROLE_UPDATED":
+        return <EditOutlined style={{ color: "#faad14" }} />;
+      case "FORM_CREATED":
+        return <FormOutlined style={{ color: "#52c41a" }} />;
+      case "FORM_UPDATED":
+        return <EditOutlined style={{ color: "#1890ff" }} />;
+      case "FORM_DELETED":
+        return <DeleteOutlined style={{ color: "#ff4d4f" }} />;
+      case "FORM_PUBLISHED":
+        return <UnlockOutlined style={{ color: "#52c41a" }} />;
+      case "FORM_ARCHIVED":
+        return <LockOutlined style={{ color: "#faad14" }} />;
+      default:
+        return <TeamOutlined />;
+    }
+  };
+
+  const getActivityDescription = (activity: TeamActivity) => {
+    const { action, details, user } = activity;
+    const userName = user.name || user.email || "A user";
+
+    switch (action) {
+      case "TEAM_CREATED":
+        return `${userName} created the team`;
+      case "TEAM_UPDATED":
+        return `${userName} updated the team details`;
+      case "TEAM_DELETED":
+        return `${userName} deleted the team`;
+      case "MEMBER_INVITED":
+        return `${userName} invited ${details.inviteeEmail} to join as ${details.role}`;
+      case "MEMBER_JOINED":
+        return `${userName} joined the team as ${details.role}`;
+      case "MEMBER_REMOVED":
+        if (details.isSelfRemoval) {
+          return `${userName} left the team`;
+        }
+        return `${userName} removed ${details.removedMemberEmail} from the team`;
+      case "MEMBER_ROLE_UPDATED":
+        return `${userName} changed ${details.memberEmail}'s role from ${details.oldRole} to ${details.newRole}`;
+      case "FORM_CREATED":
+        return `${userName} created a new form: ${details.formTitle}`;
+      case "FORM_UPDATED":
+        return `${userName} updated the form: ${details.formTitle}`;
+      case "FORM_DELETED":
+        return `${userName} deleted the form: ${details.formTitle}`;
+      case "FORM_PUBLISHED":
+        return `${userName} published the form: ${details.formTitle}`;
+      case "FORM_ARCHIVED":
+        return `${userName} archived the form: ${details.formTitle}`;
+      default:
+        return `${userName} performed an action`;
+    }
+  };
+
+  const getActivityTag = (action: string) => {
+    switch (action) {
+      case "TEAM_CREATED":
+      case "FORM_CREATED":
+      case "MEMBER_JOINED":
+      case "FORM_PUBLISHED":
+        return <Tag color="success">Created</Tag>;
+      case "TEAM_UPDATED":
+      case "FORM_UPDATED":
+      case "MEMBER_ROLE_UPDATED":
+        return <Tag color="processing">Updated</Tag>;
+      case "TEAM_DELETED":
+      case "FORM_DELETED":
+      case "MEMBER_REMOVED":
+        return <Tag color="error">Deleted</Tag>;
+      case "MEMBER_INVITED":
+        return <Tag color="purple">Invited</Tag>;
+      case "FORM_ARCHIVED":
+        return <Tag color="warning">Archived</Tag>;
+      default:
+        return <Tag>Action</Tag>;
+    }
+  };
+
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setPagination({
+      ...pagination,
+      current: page,
+      pageSize: pageSize || pagination.pageSize,
+    });
+  };
+
   return (
     <motion.div
       initial="hidden"
@@ -325,52 +503,72 @@ const TeamMember = ({
 
       {/* Activity Log Tab */}
       {activeTab === "activity" && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-6">
-            <div className="flow-root">
-              <ul className="-mb-8">
-                {activityLogs.map((log, index) => (
-                  <li key={log.id}>
-                    <div className="relative pb-8">
-                      {index !== activityLogs.length - 1 && (
-                        <span
-                          className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                          aria-hidden="true"
-                        ></span>
-                      )}
-                      <div className="relative flex items-start space-x-3">
-                        <div className="relative">
-                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center ring-8 ring-white">
-                            <UserGroupIcon className="h-5 w-5 text-gray-500" />
+        <div className="max-w-6xl mx-auto p-6 w-full">
+          <Card className="mb-6">
+            <Title level={4}>Team Activity Log</Title>
+            <Text type="secondary">
+              View all actions performed by team members
+            </Text>
+          </Card>
+
+          <Card>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Spin size="large" />
+              </div>
+            ) : activities.length === 0 ? (
+              <Empty description="No activities found for this team" />
+            ) : (
+              <>
+                <List
+                  itemLayout="horizontal"
+                  dataSource={activities}
+                  renderItem={(activity) => (
+                    <List.Item>
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar
+                            src={activity.user.image}
+                            icon={!activity.user.image && <UserAddOutlined />}
+                          />
+                        }
+                        title={
+                          <div className="flex items-center">
+                            <span className="mr-2">
+                              {getActivityDescription(activity)}
+                            </span>
+                            {getActivityTag(activity.action)}
                           </div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div>
-                            <div className="text-sm">
-                              <span className="font-medium text-gray-900">
-                                {log.user}
-                              </span>
-                              <span className="text-gray-500">
-                                {" "}
-                                {log.action}{" "}
-                              </span>
-                              <span className="font-medium text-gray-900">
-                                {log.target}
-                              </span>
-                            </div>
-                            <p className="mt-0.5 text-sm text-gray-500 flex items-center">
-                              <ClockIcon className="h-4 w-4 mr-1" />
-                              {log.time}
-                            </p>
+                        }
+                        description={
+                          <div className="flex items-center">
+                            <span className="mr-2">
+                              {format(
+                                new Date(activity.createdAt),
+                                "MMM d, yyyy 'at' h:mm a"
+                              )}
+                            </span>
+                            {getActivityIcon(activity.action)}
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+
+                <div className="mt-4 flex justify-end">
+                  <Pagination
+                    current={pagination.current}
+                    pageSize={pagination.pageSize}
+                    total={pagination.total}
+                    onChange={handlePageChange}
+                    showSizeChanger
+                    showTotal={(total) => `Total ${total} activities`}
+                  />
+                </div>
+              </>
+            )}
+          </Card>
         </div>
       )}
 

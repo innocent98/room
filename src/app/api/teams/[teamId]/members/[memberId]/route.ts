@@ -2,11 +2,63 @@ import { type NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { logTeamActivity } from "@/lib/activity-logger"
 
 const prisma = new PrismaClient()
 
+// Get a specific team member
+export async function GET(request: NextRequest, { params }: { params: { teamId: string; memberId: string } }) {
+  try {
+    const session:any = await getServerSession(authOptions)
+    const { teamId, memberId } = params
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check if user is a member of the team
+    const userMembership = await prisma.teamMember.findFirst({
+      where: {
+        teamId,
+        userId: session.user.id,
+      },
+    })
+
+    if (!userMembership) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Get the requested team member
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        id: memberId,
+        teamId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
+    })
+
+    if (!member) {
+      return NextResponse.json({ error: "Team member not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(member)
+  } catch (error) {
+    console.error(`Error fetching team member ${params.memberId}:`, error)
+    return NextResponse.json({ error: "Failed to fetch team member" }, { status: 500 })
+  }
+}
+
 // Update a team member's role
-export async function PUT(request: NextRequest, { params }: { params: { teamId: string; memberId: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: { teamId: string; memberId: string } }) {
   try {
     const session:any = await getServerSession(authOptions)
     const { teamId, memberId } = params
@@ -16,7 +68,7 @@ export async function PUT(request: NextRequest, { params }: { params: { teamId: 
     }
 
     // Check if user is an admin of the team
-    const adminMembership = await prisma.teamMember.findFirst({
+    const userMembership = await prisma.teamMember.findFirst({
       where: {
         teamId,
         userId: session.user.id,
@@ -24,22 +76,41 @@ export async function PUT(request: NextRequest, { params }: { params: { teamId: 
       },
     })
 
-    if (!adminMembership) {
-      return NextResponse.json({ error: "Only admins can update member roles" }, { status: 403 })
+    if (!userMembership) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const data = await request.json()
 
+    // Validate required fields
+    if (!data.role) {
+      return NextResponse.json({ error: "Role is required" }, { status: 400 })
+    }
+
     // Validate role
-    if (!data.role || !["ADMIN", "EDITOR", "VIEWER"].includes(data.role)) {
+    if (!["ADMIN", "EDITOR", "VIEWER"].includes(data.role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 })
     }
 
-    // Update member role
-    const updatedMember = await prisma.teamMember.update({
+    // Get the member to update
+    const memberToUpdate = await prisma.teamMember.findFirst({
       where: {
         id: memberId,
         teamId,
+      },
+      include: {
+        user: true,
+      },
+    })
+
+    if (!memberToUpdate) {
+      return NextResponse.json({ error: "Team member not found" }, { status: 404 })
+    }
+
+    // Update the member's role
+    const updatedMember = await prisma.teamMember.update({
+      where: {
+        id: memberId,
       },
       data: {
         role: data.role,
@@ -54,6 +125,14 @@ export async function PUT(request: NextRequest, { params }: { params: { teamId: 
           },
         },
       },
+    })
+
+    // Log the activity
+    await logTeamActivity(teamId, session.user.id, "MEMBER_ROLE_UPDATED", {
+      memberId: memberToUpdate.userId,
+      memberEmail: memberToUpdate.user.email,
+      oldRole: memberToUpdate.role,
+      newRole: data.role,
     })
 
     return NextResponse.json(updatedMember)
@@ -73,37 +152,49 @@ export async function DELETE(request: NextRequest, { params }: { params: { teamI
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if user is an admin of the team
-    const adminMembership = await prisma.teamMember.findFirst({
+    // Check if user is an admin of the team or removing themselves
+    const memberToRemove = await prisma.teamMember.findFirst({
       where: {
+        id: memberId,
         teamId,
-        userId: session.user.id,
-        role: "ADMIN",
+      },
+      include: {
+        user: true,
       },
     })
 
-    if (!adminMembership) {
-      return NextResponse.json({ error: "Only admins can remove members" }, { status: 403 })
+    if (!memberToRemove) {
+      return NextResponse.json({ error: "Team member not found" }, { status: 404 })
     }
 
-    // Get the member to be removed
-    const memberToRemove = await prisma.teamMember.findUnique({
-      where: { id: memberId },
-      include: { team: true },
+    const userMembership = await prisma.teamMember.findFirst({
+      where: {
+        teamId,
+        userId: session.user.id,
+      },
     })
 
-    if (!memberToRemove) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 })
+    // User can remove themselves or admins can remove others
+    const isSelfRemoval = memberToRemove.userId === session.user.id
+    const isAdmin = userMembership?.role === "ADMIN"
+
+    if (!isSelfRemoval && !isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Prevent removing the team owner
-    if (memberToRemove.userId === memberToRemove.team.ownerId) {
-      return NextResponse.json({ error: "Cannot remove the team owner" }, { status: 403 })
-    }
-
-    // Remove the member
+    // Delete the team member
     await prisma.teamMember.delete({
-      where: { id: memberId },
+      where: {
+        id: memberId,
+      },
+    })
+
+    // Log the activity
+    await logTeamActivity(teamId, session.user.id, "MEMBER_REMOVED", {
+      removedMemberId: memberToRemove.userId,
+      removedMemberEmail: memberToRemove.user.email,
+      removedMemberRole: memberToRemove.role,
+      isSelfRemoval,
     })
 
     return NextResponse.json({ success: true })
