@@ -5,8 +5,8 @@ import { useState } from "react";
 import { Layout, Input, Button } from "antd";
 import { ArrowLeftOutlined, SearchOutlined } from "@ant-design/icons";
 import Link from "next/link";
-import ContactSupportForm from "../components/help-center/ContactSUpportForm";
-import FAQSection from "../components/help-center/FAQSection";
+import ContactSupportForm from "../../components/help-center/ContactSUpportForm";
+import FAQSection from "../../components/help-center/FAQSection";
 
 const { Header, Content, Footer } = Layout;
 const { Search } = Input;
