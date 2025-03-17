@@ -5,14 +5,8 @@ const nextConfig: NextConfig = {
   images: {
     domains: ["via.placeholder.com", "images.unsplash.com"],
   },
-  redirects: async () => {
-    return [
-      {
-        source: "/old-blog",
-        destination: "/new-blog",
-        permanent: true,
-      },
-    ];
+  experimental: {
+    esmExternals: true,
   },
 };
 

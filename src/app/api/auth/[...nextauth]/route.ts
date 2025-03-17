@@ -5,7 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/db";
 
-export const authOptions = {
+const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -53,7 +53,7 @@ export const authOptions = {
   ],
   pages: {
     signIn: "/auth/sign-in",
-    signUp: "/auth/sign-up",
+    // signUp: "/auth/sign-up",
     error: "/auth/error",
     verifyRequest: "/auth/verify-request",
   },
@@ -77,8 +77,9 @@ export const authOptions = {
     strategy: "jwt" as SessionStrategy,
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
-
-const handler = NextAuth(authOptions);
+});
 
 export { handler as GET, handler as POST };
+export default handler;
+
+// const handler = NextAuth(authOptions);
