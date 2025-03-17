@@ -7,9 +7,29 @@ import { Spin, message } from "antd"
 import Layout from "@/components/layout"
 import { useRouter } from "next/navigation"
 
+interface Invitation {
+  id: string
+  teamId: string
+  email: string
+  role: string
+  token: string
+  expires: string
+  createdAt: string
+  team: {
+    id: string
+    name: string
+  }
+  invitedBy: {
+    id: string
+    name: string
+    email: string
+    image: string
+  }
+}
+
 export default function InvitationsPage() {
   const router = useRouter()
-  const [invitations, setInvitations] = useState<any[]>([])
+  const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
@@ -26,33 +46,15 @@ export default function InvitationsPage() {
     try {
       setLoading(true)
 
-      // This would be a real API endpoint in your application
-      // For now, we'll use mock data
-      const mockInvitations = [
-        {
-          id: "1",
-          teamId: "team1",
-          teamName: "Design Team",
-          role: "EDITOR",
-          invitedBy: "John Doe",
-          invitedOn: "2023-09-10",
-        },
-        {
-          id: "2",
-          teamId: "team2",
-          teamName: "Marketing Team",
-          role: "VIEWER",
-          invitedBy: "Jane Smith",
-          invitedOn: "2023-09-15",
-        },
-      ]
+      // Fetch pending invitations from the API
+      const response = await fetch("/api/invitations")
 
-      // In a real app, you would fetch from your API
-      // const response = await fetch('/api/invitations/pending')
-      // const data = await response.json()
-      // setInvitations(data)
+      if (!response.ok) {
+        throw new Error("Failed to fetch invitations")
+      }
 
-      setInvitations(mockInvitations)
+      const data = await response.json()
+      setInvitations(data)
     } catch (error) {
       console.error("Error fetching invitations:", error)
       message.error("Failed to load invitations")
@@ -61,18 +63,15 @@ export default function InvitationsPage() {
     }
   }
 
-  const handleAcceptInvitation = async (invitationId: string) => {
-    setProcessingId(invitationId)
+  const handleAcceptInvitation = async (token: string) => {
+    setProcessingId(token)
 
     try {
-      const response = await fetch("/api/invitations/accept", {
+      const response = await fetch(`/api/invitations/${token}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          invitationId,
-        }),
       })
 
       if (!response.ok) {
@@ -82,33 +81,30 @@ export default function InvitationsPage() {
 
       const data = await response.json()
 
-      message.success(`You've joined ${data.teamName}!`)
+      message.success(`You've joined ${data.team.name}!`)
 
       // Remove the invitation from the list
-      setInvitations(invitations.filter((inv) => inv.id !== invitationId))
+      setInvitations(invitations.filter((inv) => inv.token !== token))
 
       // Redirect to the team page
-      router.push(`/team?id=${data.teamId}`)
+      router.push(`/dashboard/team/${data.team.id}`)
     } catch (error) {
-      console.error("Error accepting invitation:", error)
-      message.error("Failed to accept invitation")
+      // console.log("Error accepting invitation:", error)
+      message.error(error instanceof Error ? error.message : "Failed to accept invitation")
     } finally {
       setProcessingId(null)
     }
   }
 
-  const handleDeclineInvitation = async (invitationId: string) => {
-    setProcessingId(invitationId)
+  const handleDeclineInvitation = async (token: string) => {
+    setProcessingId(token)
 
     try {
-      const response = await fetch("/api/invitations/decline", {
-        method: "POST",
+      const response = await fetch(`/api/invitations/${token}`, {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          invitationId,
-        }),
       })
 
       if (!response.ok) {
@@ -119,10 +115,10 @@ export default function InvitationsPage() {
       message.success("Invitation declined")
 
       // Remove the invitation from the list
-      setInvitations(invitations.filter((inv) => inv.id !== invitationId))
+      setInvitations(invitations.filter((inv) => inv.token !== token))
     } catch (error) {
       console.error("Error declining invitation:", error)
-      message.error("Failed to decline invitation")
+      message.error(error instanceof Error ? error.message : "Failed to decline invitation")
     } finally {
       setProcessingId(null)
     }
@@ -167,7 +163,7 @@ export default function InvitationsPage() {
             <h3 className="text-lg font-medium mb-2">No pending invitations</h3>
             <p className="text-gray-500 mb-4">You don't have any pending team invitations at the moment.</p>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/dashboard")}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
             >
               Go to Dashboard
@@ -186,31 +182,34 @@ export default function InvitationsPage() {
               >
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{invitation.teamName}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">{invitation.team.name}</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      You've been invited by {invitation.invitedBy} to join as a{" "}
+                      You've been invited by {invitation.invitedBy.name || invitation.invitedBy.email} to join as a{" "}
                       <span className="font-medium">{invitation.role.toLowerCase()}</span>
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Invited on {new Date(invitation.invitedOn).toLocaleDateString()}
+                      Invited on {new Date(invitation.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Expires on {new Date(invitation.expires).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="mt-4 md:mt-0 flex space-x-3">
                     <button
-                      onClick={() => handleDeclineInvitation(invitation.id)}
+                      onClick={() => handleDeclineInvitation(invitation.token)}
                       className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium flex items-center"
-                      disabled={processingId === invitation.id}
+                      disabled={processingId === invitation.token}
                     >
                       <XMarkIcon className="h-5 w-5 mr-1" />
                       Decline
                     </button>
                     <button
-                      onClick={() => handleAcceptInvitation(invitation.id)}
+                      onClick={() => handleAcceptInvitation(invitation.token)}
                       className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium flex items-center"
-                      disabled={processingId === invitation.id}
+                      disabled={processingId === invitation.token}
                     >
                       <CheckIcon className="h-5 w-5 mr-1" />
-                      {processingId === invitation.id ? "Processing..." : "Accept"}
+                      {processingId === invitation.token ? "Processing..." : "Accept"}
                     </button>
                   </div>
                 </div>

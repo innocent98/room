@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: { params: { token: 
     })
 
     if (!invitation) {
-      return NextResponse.json({ error: "Invitation not found or expired" }, { status: 404 })
+      return NextResponse.json({ message: "Invitation not found or expired" }, { status: 404 })
     }
 
     // Check if the invitation email matches the user's email
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest, { params }: { params: { token: 
         },
       })
 
-      return NextResponse.json({ error: "You are already a member of this team" }, { status: 400 })
+      return NextResponse.json({ message: "You are already a member of this team" }, { status: 400 })
     }
 
     // Add user to team and delete the invitation
@@ -138,7 +138,50 @@ export async function POST(request: NextRequest, { params }: { params: { token: 
     })
   } catch (error) {
     console.error(`Error accepting invitation ${params.token}:`, error)
-    return NextResponse.json({ error: "Failed to accept invitation" }, { status: 500 })
+    return NextResponse.json({ message: "Failed to accept invitation" }, { status: 500 })
+  }
+}
+
+// Decline an invitation
+export async function DELETE(request: NextRequest, { params }: { params: { token: string } }) {
+  try {
+    const session:any = await getServerSession(authOptions)
+    const token = params.token
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Find the invitation
+    const invitation = await prisma.teamInvitation.findFirst({
+      where: {
+        token,
+        email: session.user.email,
+      },
+    })
+
+    if (!invitation) {
+      return NextResponse.json({ error: "Invitation not found" }, { status: 404 })
+    }
+
+    // Delete the invitation
+    await prisma.teamInvitation.delete({
+      where: {
+        id: invitation.id,
+      },
+    })
+
+    // Log the activity
+    await logTeamActivity(invitation.teamId, session.user.id, "MEMBER_REMOVED", {
+      invitedBy: invitation.invitedById,
+      role: invitation.role,
+      declined: true,
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error(`Error declining invitation ${params.token}:`, error)
+    return NextResponse.json({ error: "Failed to decline invitation" }, { status: 500 })
   }
 }
 

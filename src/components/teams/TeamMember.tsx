@@ -9,10 +9,7 @@ import {
   UnlockOutlined,
   LockOutlined,
 } from "@ant-design/icons";
-import {
-  ArrowPathIcon,
-  EnvelopeIcon,
-} from "@heroicons/react/24/outline";
+import { ArrowPathIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
 import {
   Switch,
   Typography,
@@ -22,17 +19,15 @@ import {
   Pagination,
   Spin,
   List,
+  Button,
 } from "antd";
 import { motion } from "framer-motion";
-import {
-  ChevronDownIcon,
-  PencilIcon,
-  TrashIcon,
-  Tag,
-} from "lucide-react";
+import { ChevronDownIcon, PencilIcon, TrashIcon, Tag } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import React, { useEffect, useState } from "react";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 
 const { Title, Text } = Typography;
 
@@ -41,7 +36,6 @@ interface Props {
   teamMembers: any[];
   teamData: any;
   pendingInvites: any[];
-  activityLogs: any[];
   teamName: string;
   teamDescription: string;
   teamSettings: any;
@@ -56,6 +50,7 @@ interface Props {
   setTeamSettings: (value: any) => void;
   handleSaveSettings: () => void;
   handleDeleteTeam: () => void;
+  handleOpenRoleModal: (memberId: string, currentRole: string) => void;
 }
 
 interface TeamActivity {
@@ -83,7 +78,6 @@ const TeamMember = ({
   teamMembers,
   teamData,
   pendingInvites,
-  activityLogs,
   teamName,
   teamDescription,
   teamSettings,
@@ -98,6 +92,7 @@ const TeamMember = ({
   setTeamSettings,
   handleSaveSettings,
   handleDeleteTeam,
+  handleOpenRoleModal,
 }: Props) => {
   const params = useSearchParams();
   const teamId = params.get("id");
@@ -375,7 +370,13 @@ const TeamMember = ({
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {teamData && teamData.ownerId !== member.userId && (
                         <div className="flex justify-end space-x-2">
-                          <button className="text-indigo-600 hover:text-indigo-900">
+                          <button
+                            onClick={() =>
+                              handleOpenRoleModal(member.id, member.role)
+                            }
+                            className="text-indigo-600 hover:text-indigo-900"
+                            title="Change role"
+                          >
                             <PencilIcon className="h-5 w-5" />
                           </button>
                           <button
@@ -574,140 +575,133 @@ const TeamMember = ({
 
       {/* Team Settings Tab */}
       {activeTab === "settings" && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Team Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeIn}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-medium">Team Settings</h2>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-6">
+                <label
+                  htmlFor="teamName"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Team Name
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                <Input
+                  id="teamName"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Enter team name"
+                  className="w-full"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+
+              <div className="mb-6">
+                <label
+                  htmlFor="teamDescription"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Team Description
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                <Textarea
+                  id="teamDescription"
                   value={teamDescription}
                   onChange={(e) => setTeamDescription(e.target.value)}
+                  placeholder="Enter team description"
+                  rows={4}
+                  className="w-full"
                 />
               </div>
-            </div>
-          </div>
 
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Team Logo</h3>
-            <div className="flex items-center">
-              <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden mr-4">
-                <img
-                  src="/placeholder.svg?height=64&width=64"
-                  alt="Team Logo"
-                  className="h-16 w-16 object-cover"
-                />
-              </div>
-              <div>
-                <button className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 font-medium mr-2">
-                  Upload New Logo
-                </button>
-                <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                  Remove
-                </button>
-              </div>
-            </div>
-          </div>
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-4">Permissions</h3>
 
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Permissions</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-700 font-medium">
-                    Allow Editors to Invite Members
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Editors can invite new team members with Viewer role.
-                  </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">
+                        Allow Editors to Invite Members
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        Editors can invite new members to the team
+                      </p>
+                    </div>
+                    <Switch
+                      checked={teamSettings.allowEditorsToInvite}
+                      onChange={(checked) =>
+                        setTeamSettings({
+                          ...teamSettings,
+                          allowEditorsToInvite: checked,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">
+                        Allow Viewers to Export Data
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        Viewers can export form responses
+                      </p>
+                    </div>
+                    <Switch
+                      checked={teamSettings.allowViewersToExport}
+                      onChange={(checked) =>
+                        setTeamSettings({
+                          ...teamSettings,
+                          allowViewersToExport: checked,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">
+                        Require Two-Factor Authentication
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        All team members must use 2FA
+                      </p>
+                    </div>
+                    <Switch
+                      checked={teamSettings.requireTwoFactor}
+                      onChange={(checked) =>
+                        setTeamSettings({
+                          ...teamSettings,
+                          requireTwoFactor: checked,
+                        })
+                      }
+                    />
+                  </div>
                 </div>
-                <Switch
-                  checked={teamSettings.allowEditorsToInvite}
-                  onChange={(checked) =>
-                    setTeamSettings({
-                      ...teamSettings,
-                      allowEditorsToInvite: checked,
-                    })
-                  }
-                />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-700 font-medium">
-                    Allow Viewers to Export Data
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Viewers can export form responses and analytics.
-                  </p>
-                </div>
-                <Switch
-                  checked={teamSettings.allowViewersToExport}
-                  onChange={(checked) =>
-                    setTeamSettings({
-                      ...teamSettings,
-                      allowViewersToExport: checked,
-                    })
-                  }
-                />
-              </div>
+              <div className="flex justify-between pt-4 border-t border-gray-200">
+                <Button danger onClick={handleDeleteTeam}>
+                  Delete Team
+                </Button>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-700 font-medium">
-                    Require Two-Factor Authentication
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    All team members must use two-factor authentication.
-                  </p>
-                </div>
-                <Switch
-                  checked={teamSettings.requireTwoFactor}
-                  onChange={(checked) =>
-                    setTeamSettings({
-                      ...teamSettings,
-                      requireTwoFactor: checked,
-                    })
-                  }
-                />
+                <Button
+                  type="primary"
+                  onClick={handleSaveSettings}
+                  loading={savingSettings}
+                >
+                  Save Settings
+                </Button>
               </div>
             </div>
           </div>
-
-          <div className="border-t border-gray-200 pt-6">
-            <div className="flex justify-between">
-              <button
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
-                onClick={handleSaveSettings}
-                disabled={savingSettings}
-              >
-                {savingSettings ? "Saving..." : "Save Changes"}
-              </button>
-              <button
-                className="text-red-600 border border-red-600 px-4 py-2 rounded-md hover:bg-red-50 font-medium flex items-center"
-                onClick={handleDeleteTeam}
-              >
-                <TrashIcon className="h-5 w-5 mr-2" />
-                Delete Team
-              </button>
-            </div>
-          </div>
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );
