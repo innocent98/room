@@ -1,6 +1,11 @@
+import Footer from "@/components/footer";
+import Header from "@/components/header";
+
 export default function PrivacyPolicyPage() {
     return (
-      <div className="container mx-auto py-16 px-4 max-w-4xl">
+      <div>
+        <Header />
+        <div className="container mx-auto py-16 px-4 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
   
         <div className="prose dark:prose-invert max-w-none">
@@ -159,6 +164,8 @@ export default function PrivacyPolicyPage() {
   
           <p className="mt-12 text-muted-foreground text-sm">Effective date: March 10, 2023</p>
         </div>
+      </div>
+        <Footer />
       </div>
     )
   }

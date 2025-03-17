@@ -1,11 +1,13 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { CheckIcon } from "@heroicons/react/24/outline"
-import { useRouter } from "next/navigation"
-import Layout from "@/components/layout"
-import { message } from "antd"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { CheckIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
+import Layout from "@/components/layout";
+import { message } from "antd";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
 
 const plans = [
   {
@@ -14,7 +16,13 @@ const plans = [
     price: "$0",
     period: "forever",
     description: "For individuals just getting started",
-    features: ["Up to 3 forms", "100 responses per month", "Basic form fields", "Email notifications", "Export to CSV"],
+    features: [
+      "Up to 3 forms",
+      "100 responses per month",
+      "Basic form fields",
+      "Email notifications",
+      "Export to CSV",
+    ],
     cta: "Get Started",
     popular: false,
   },
@@ -72,32 +80,34 @@ const plans = [
     cta: "Contact Sales",
     popular: false,
   },
-]
+];
 
 export default function PricingPage() {
-  const [billingPeriod, setBillingPeriod] = useState("monthly")
-  const router = useRouter()
+  const [billingPeriod, setBillingPeriod] = useState("monthly");
+  const router = useRouter();
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
-  }
+  };
 
   const handleSelectPlan = (planId: string) => {
     if (planId === "enterprise") {
       // Redirect to contact page for enterprise plan
-      router.push("/contact")
+      router.push("/contact");
     } else if (planId === "free") {
       // Free plan doesn't need subscription
-      message.success("You're now on the Free plan!")
-      router.push("/")
+      message.success("You're now on the Free plan!");
+      router.push("/");
     } else {
       // For paid plans, redirect to subscription page
-      router.push(`/subscribe?plan=${planId}`)
+      router.push(`/subscribe?plan=${planId}`);
     }
-  }
+  };
 
   return (
+    <div>
+      <Header />
       <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <motion.div
           className="text-center mb-16"
@@ -110,7 +120,8 @@ export default function PricingPage() {
             Plans for teams of all sizes
           </h1>
           <p className="mt-5 max-w-xl mx-auto text-xl text-gray-500">
-            Choose the plan that's right for you. All plans include a 14-day free trial.
+            Choose the plan that's right for you. All plans include a 14-day
+            free trial.
           </p>
 
           <div className="mt-12 flex justify-center">
@@ -118,7 +129,9 @@ export default function PricingPage() {
               <button
                 type="button"
                 className={`${
-                  billingPeriod === "monthly" ? "bg-indigo-600 text-white" : "bg-white text-gray-500"
+                  billingPeriod === "monthly"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white text-gray-500"
                 } relative py-2 px-6 border-transparent rounded-full text-sm font-medium whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:z-10`}
                 onClick={() => setBillingPeriod("monthly")}
               >
@@ -127,12 +140,16 @@ export default function PricingPage() {
               <button
                 type="button"
                 className={`${
-                  billingPeriod === "annual" ? "bg-indigo-600 text-white" : "bg-white text-gray-500"
+                  billingPeriod === "annual"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white text-gray-500"
                 } relative py-2 px-6 border-transparent rounded-full text-sm font-medium whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:z-10`}
                 onClick={() => setBillingPeriod("annual")}
               >
                 Annual billing
-                <span className="ml-1 text-xs font-bold text-indigo-200">(Save 20%)</span>
+                <span className="ml-1 text-xs font-bold text-indigo-200">
+                  (Save 20%)
+                </span>
               </button>
             </div>
           </div>
@@ -143,7 +160,9 @@ export default function PricingPage() {
             <motion.div
               key={plan.id}
               className={`relative p-8 bg-white border rounded-2xl shadow-sm flex flex-col ${
-                plan.popular ? "border-indigo-500 ring-2 ring-indigo-500" : "border-gray-200"
+                plan.popular
+                  ? "border-indigo-500 ring-2 ring-indigo-500"
+                  : "border-gray-200"
               }`}
               initial="hidden"
               animate="visible"
@@ -158,18 +177,26 @@ export default function PricingPage() {
                 </div>
               )}
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-gray-900">{plan.name}</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {plan.name}
+                </h3>
                 <div className="mt-4 flex items-baseline">
                   <span className="text-4xl font-extrabold text-gray-900">
-                    {billingPeriod === "annual" && plan.price !== "Custom" && plan.price !== "$0"
-                      ? `$${Number.parseInt(plan.price.replace("$", "")) * 0.8}`
+                    {billingPeriod === "annual" &&
+                    plan.price !== "Custom" &&
+                    plan.price !== "$0"
+                      ? `$${Math.round(Number.parseInt(plan.price.replace("$", "")) * 0.8)}`
                       : plan.price}
                   </span>
                   <span className="ml-1 text-xl font-semibold text-gray-500">
-                    {plan.period === "per month" && billingPeriod === "annual" ? "/year" : `/${plan.period}`}
+                    {plan.period === "per month" && billingPeriod === "annual"
+                      ? "/year"
+                      : `/${plan.period}`}
                   </span>
                 </div>
-                <p className="mt-2 text-base text-gray-500">{plan.description}</p>
+                <p className="mt-2 text-base text-gray-500">
+                  {plan.description}
+                </p>
 
                 <ul className="mt-6 space-y-4">
                   {plan.features.map((feature, featureIndex) => (
@@ -199,27 +226,38 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-16 bg-gray-50 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Frequently Asked Questions
+          </h2>
           <div className="grid md:grid-cols-2 gap-8">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">What's included in the free plan?</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                What's included in the free plan?
+              </h3>
               <p className="text-gray-500">
-                The free plan includes up to 3 forms, 100 responses per month, and basic form fields. It's perfect for
-                individuals just getting started.
+                The free plan includes up to 3 forms, 100 responses per month,
+                and basic form fields. It's perfect for individuals just getting
+                started.
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Can I upgrade or downgrade my plan later?</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Can I upgrade or downgrade my plan later?
+              </h3>
               <p className="text-gray-500">
-                Yes, you can upgrade or downgrade your plan at any time. Changes will be applied immediately, and your
-                billing will be prorated accordingly.
+                Yes, you can upgrade or downgrade your plan at any time. Changes
+                will be applied immediately, and your billing will be prorated
+                accordingly.
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">How does the Team plan work?</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                How does the Team plan work?
+              </h3>
               <p className="text-gray-500">
-                The Team plan allows up to 10 team members to collaborate on forms. Each member can be assigned
-                different roles with specific permissions.
+                The Team plan allows up to 10 team members to collaborate on
+                forms. Each member can be assigned different roles with specific
+                permissions.
               </p>
             </div>
             <div>
@@ -227,13 +265,15 @@ export default function PricingPage() {
                 Do you offer custom plans for larger organizations?
               </h3>
               <p className="text-gray-500">
-                Yes, our Enterprise plan is customizable to meet the specific needs of larger organizations. Contact our
-                sales team to discuss your requirements.
+                Yes, our Enterprise plan is customizable to meet the specific
+                needs of larger organizations. Contact our sales team to discuss
+                your requirements.
               </p>
             </div>
           </div>
         </div>
       </div>
-  )
+      <Footer />
+    </div>
+  );
 }
-

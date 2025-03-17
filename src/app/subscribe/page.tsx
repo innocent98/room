@@ -6,8 +6,9 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { CheckIcon } from "@heroicons/react/24/outline"
-import Layout from "@/components/layout"
 import { message, Spin } from "antd"
+import Header from "@/components/header"
+import Footer from "@/components/footer"
 
 export default function SubscribePage() {
   const router = useRouter()
@@ -102,17 +103,16 @@ export default function SubscribePage() {
 
   if (loading) {
     return (
-      <Layout>
         <div className="flex justify-center items-center h-96">
           <Spin size="large" />
           <span className="ml-2">Loading plan details...</span>
         </div>
-      </Layout>
     )
   }
 
   return (
-    <Layout>
+    <div>
+      <Header/>
       <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <motion.div
           className="text-center mb-12"
@@ -323,7 +323,8 @@ export default function SubscribePage() {
           </motion.div>
         </div>
       </div>
-    </Layout>
+      <Footer />
+    </div>
   )
 }
 

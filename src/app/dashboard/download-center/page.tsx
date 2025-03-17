@@ -11,11 +11,11 @@ import {
   ScheduleOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
-import DataCustomization from "../components/download-center/DataCustomization";
-import ExportSettings from "../components/download-center/ExportSettings";
-import FileFormatSelection from "../components/download-center/FileFormatSelection";
-import PreviewModal from "../components/download-center/PreviewModal";
-import ScheduleReportModal from "../components/download-center/ScheduleReportModal";
+import DataCustomization from "@/components/download-center/DataCustomization";
+import ExportSettings from "@/components/download-center/ExportSettings";
+import FileFormatSelection from "@/components/download-center/FileFormatSelection";
+import PreviewModal from "@/components/download-center/PreviewModal";
+import ScheduleReportModal from "@/components/download-center/ScheduleReportModal";
 
 const { Header, Content, Footer } = Layout;
 const { RangePicker } = DatePicker;

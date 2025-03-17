@@ -189,3 +189,29 @@ export const generateTeamInviteEmail = async ({
     });
   });
 };
+
+export const sendEmail = async ({ mailOptions }: any) => {
+  // Create a transporter
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_SERVER_HOST,
+    port: Number(process.env.EMAIL_SERVER_PORT),
+    auth: {
+      user: process.env.EMAIL_SERVER_USER,
+      pass: process.env.EMAIL_SERVER_PASSWORD,
+    },
+    secure: process.env.NODE_ENV === "production" || true,
+  });
+
+  // Send email
+  await new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (err: any, info: any) => {
+      if (err) {
+        console.log(err);
+        reject(err);
+      } else {
+        console.log("sent");
+        resolve(info);
+      }
+    });
+  });
+};

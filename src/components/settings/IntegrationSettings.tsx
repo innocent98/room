@@ -168,7 +168,7 @@ export default function IntegrationSettings() {
     <div>
       <h2 className="text-xl font-bold mb-6">Integrations</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {integrations.map((integration) => (
           <div key={integration.id} className="border border-gray-200 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
@@ -204,7 +204,7 @@ export default function IntegrationSettings() {
             )}
           </div>
         ))}
-      </div>
+      </div> */}
 
       <div className="border-t border-gray-200 pt-6">
         {/* <h3 className="text-lg font-medium mb-4">API Access</h3> */}
