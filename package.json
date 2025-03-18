@@ -46,6 +46,7 @@
     "next": "15.1.6",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.0",
+    "prisma": "^6.5.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-dnd": "^16.0.1",
@@ -71,5 +72,8 @@
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
 }
