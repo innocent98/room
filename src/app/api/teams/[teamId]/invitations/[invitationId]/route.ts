@@ -8,13 +8,14 @@ import { logTeamActivity } from "@/lib/activity-logger";
 const prisma = new PrismaClient();
 
 // Resend an invitation
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { teamId: string; invitationId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
-    const { teamId, invitationId } = params;
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-3); // Extracts the [id] from URL
+    const invitationId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -73,7 +74,7 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(`Error resending invitation ${params.invitationId}:`, error);
+    // console.error(`Error resending invitation ${params.invitationId}:`, error);
     return NextResponse.json(
       { error: "Failed to resend invitation" },
       { status: 500 }
@@ -82,13 +83,14 @@ export async function POST(
 }
 
 // Cancel an invitation
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { teamId: string; invitationId: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
-    const { teamId, invitationId } = params;
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-3); // Extracts the [id] from URL
+    const invitationId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -126,7 +128,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(`Error cancelling invitation ${params.invitationId}:`, error);
+    // console.error(`Error cancelling invitation ${params.invitationId}:`, error);
     return NextResponse.json(
       { error: "Failed to cancel invitation" },
       { status: 500 }

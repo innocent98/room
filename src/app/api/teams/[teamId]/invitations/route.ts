@@ -1,18 +1,21 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { type NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 // Get all pending invitations for a team
-export async function GET(request: NextRequest, { params }: { params: { teamId: string } }) {
+export async function GET(request: NextRequest) {
   try {
-    const session:any = await getServerSession(authOptions)
-    const teamId = params.teamId
+    const session: any = await getServerSession(authOptions);
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user is an admin of the team
@@ -22,10 +25,10 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
         userId: session.user.id,
         role: "ADMIN",
       },
-    })
+    });
 
     if (!membership) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const invitations = await prisma.teamInvitation.findMany({
@@ -42,12 +45,17 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
           },
         },
       },
-    })
+    });
 
-    return NextResponse.json(invitations)
+    return NextResponse.json(invitations);
   } catch (error) {
-    console.error(`Error fetching invitations for team ${params.teamId}:`, error)
-    return NextResponse.json({ error: "Failed to fetch invitations" }, { status: 500 })
+    console.error(
+      // `Error fetching invitations for team ${params.teamId}:`,
+      error
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch invitations" },
+      { status: 500 }
+    );
   }
 }
-

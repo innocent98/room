@@ -1,19 +1,22 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
-import { logTeamActivity } from "@/lib/activity-logger"
+import { type NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { logTeamActivity } from "@/lib/activity-logger";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 // Get a specific team
-export async function GET(request: NextRequest, { params }: { params: { teamId: string } }) {
+export async function GET(request: NextRequest) {
   try {
-    const session:any = await getServerSession(authOptions)
-    const teamId = params.teamId
+    const session: any = await getServerSession(authOptions);
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user is a member of the team
@@ -22,10 +25,10 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
         teamId,
         userId: session.user.id,
       },
-    })
+    });
 
     if (!membership) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get the team with member count
@@ -41,33 +44,39 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
           },
         },
       },
-    })
+    });
 
     if (!team) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 })
+      return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
     // Get user's role in the team
-    const userRole = membership.role
+    const userRole = membership.role;
 
     return NextResponse.json({
       ...team,
       userRole,
-    })
+    });
   } catch (error) {
-    console.error(`Error fetching team ${params.teamId}:`, error)
-    return NextResponse.json({ error: "Failed to fetch team" }, { status: 500 })
+    // console.error(`Error fetching team ${params.teamId}:`, error);
+    return NextResponse.json(
+      { error: "Failed to fetch team" },
+      { status: 500 }
+    );
   }
 }
 
 // Update a team
-export async function PATCH(request: NextRequest, { params }: { params: { teamId: string } }) {
+export async function PATCH(request: NextRequest) {
   try {
-    const session:any = await getServerSession(authOptions)
-    const teamId = params.teamId
+    const session: any = await getServerSession(authOptions);
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user is an admin of the team
@@ -77,17 +86,20 @@ export async function PATCH(request: NextRequest, { params }: { params: { teamId
         userId: session.user.id,
         role: "ADMIN",
       },
-    })
+    });
 
     if (!membership) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await request.json()
+    const data = await request.json();
 
     // Validate required fields
     if (!data.name) {
-      return NextResponse.json({ error: "Team name is required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Team name is required" },
+        { status: 400 }
+      );
     }
 
     // Get the current team data for activity logging
@@ -95,10 +107,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { teamId
       where: {
         id: teamId,
       },
-    })
+    });
 
     if (!currentTeam) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 })
+      return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
     // Update the team
@@ -110,31 +122,37 @@ export async function PATCH(request: NextRequest, { params }: { params: { teamId
         name: data.name,
         description: data.description,
       },
-    })
+    });
 
     // Log the activity
-    await logTeamActivity(teamId, session.user.id, "TEAM_UPDATED", {
+    await logTeamActivity(teamId || "", session.user.id, "TEAM_UPDATED", {
       oldName: currentTeam.name,
       newName: data.name,
       oldDescription: currentTeam.description,
       newDescription: data.description,
-    })
+    });
 
-    return NextResponse.json(updatedTeam)
+    return NextResponse.json(updatedTeam);
   } catch (error) {
-    console.error(`Error updating team ${params.teamId}:`, error)
-    return NextResponse.json({ error: "Failed to update team" }, { status: 500 })
+    // console.error(`Error updating team ${params.teamId}:`, error);
+    return NextResponse.json(
+      { error: "Failed to update team" },
+      { status: 500 }
+    );
   }
 }
 
 // Delete a team
-export async function DELETE(request: NextRequest, { params }: { params: { teamId: string } }) {
+export async function DELETE(request: NextRequest) {
   try {
-    const session:any = await getServerSession(authOptions)
-    const teamId = params.teamId
+    const session: any = await getServerSession(authOptions);
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user is an admin of the team
@@ -144,10 +162,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { teamI
         userId: session.user.id,
         role: "ADMIN",
       },
-    })
+    });
 
     if (!membership) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get team info for logging
@@ -155,10 +173,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { teamI
       where: {
         id: teamId,
       },
-    })
+    });
 
     if (!team) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 })
+      return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
     // Delete the team (cascade will delete members, invitations, and activities)
@@ -166,14 +184,16 @@ export async function DELETE(request: NextRequest, { params }: { params: { teamI
       where: {
         id: teamId,
       },
-    })
+    });
 
     // No need to log the activity here since the team and all its activities are deleted
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(`Error deleting team ${params.teamId}:`, error)
-    return NextResponse.json({ error: "Failed to delete team" }, { status: 500 })
+    // console.error(`Error deleting team ${params.teamId}:`, error);
+    return NextResponse.json(
+      { error: "Failed to delete team" },
+      { status: 500 }
+    );
   }
 }
-

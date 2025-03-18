@@ -6,13 +6,13 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { teamId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
-    const teamId = params.teamId;
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,7 +36,7 @@ export async function GET(
     const offset = Number.parseInt(searchParams.get("offset") || "0", 10);
 
     // Get team activities
-    const activities = await getTeamActivities(teamId, limit, offset);
+    const activities = await getTeamActivities(teamId || "", limit, offset);
 
     // Get total count for pagination
     const totalCount = await prisma.teamActivity.count({
@@ -54,10 +54,10 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error(
-      `Error fetching team activities for team ${params.teamId}:`,
-      error
-    );
+    // console.error(
+    //   `Error fetching team activities for team ${params.teamId}:`,
+    //   error
+    // );
     return NextResponse.json(
       { error: "Failed to fetch team activities" },
       { status: 500 }

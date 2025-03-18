@@ -8,13 +8,13 @@ import { logTeamActivity } from "@/lib/activity-logger";
 const prisma = new PrismaClient();
 
 // Get team members
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { teamId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
-    const teamId = params.teamId;
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -55,7 +55,7 @@ export async function GET(
     return NextResponse.json(members);
   } catch (error) {
     console.error(
-      `Error fetching team members for team ${params.teamId}:`,
+      // `Error fetching team members for team ${params.teamId}:`,
       error
     );
     return NextResponse.json(
@@ -66,13 +66,13 @@ export async function GET(
 }
 
 // Add a member to a team (invite)
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { teamId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
-    const teamId = params.teamId;
+
+    // ✅ Extract teamId ID from the request URL
+    const url = new URL(request.url);
+    const teamId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -117,7 +117,7 @@ export async function POST(
       const invitation = await prisma.teamInvitation.create({
         data: {
           email: data.email,
-          teamId,
+          teamId: teamId || "",
           role: data.role || "VIEWER",
           invitedById: session.user.id,
           token: crypto.randomUUID(), // Add this line to generate a token
@@ -136,7 +136,7 @@ export async function POST(
       });
 
       // Log the activity
-      await logTeamActivity(teamId, session.user.id, "MEMBER_INVITED", {
+      await logTeamActivity(teamId || "", session.user.id, "MEMBER_INVITED", {
         inviteeEmail: data.email,
         role: data.role || "VIEWER",
       });
@@ -162,7 +162,7 @@ export async function POST(
     // Add user to team
     const newMember = await prisma.teamMember.create({
       data: {
-        teamId,
+        teamId: teamId || "",
         userId: user.id,
         role: data.role || "VIEWER",
       },
@@ -179,7 +179,7 @@ export async function POST(
     });
 
     // Log the activity
-    await logTeamActivity(teamId, session.user.id, "MEMBER_JOINED", {
+    await logTeamActivity(teamId || "", session.user.id, "MEMBER_JOINED", {
       newMemberId: user.id,
       newMemberEmail: user.email,
       role: data.role || "VIEWER",
@@ -187,7 +187,7 @@ export async function POST(
 
     return NextResponse.json(newMember, { status: 201 });
   } catch (error) {
-    console.error(`Error adding member to team ${params.teamId}:`, error);
+    // console.error(`Error adding member to team ${params.teamId}:`, error);
     return NextResponse.json(
       { error: "Failed to add team member" },
       { status: 500 }

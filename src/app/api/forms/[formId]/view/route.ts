@@ -1,9 +1,11 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 
-export async function GET(request: NextRequest, { params }: { params: { formId: string } }) {
+export async function GET(request: NextRequest) {
   try {
-    const formId = params.formId
+    // ✅ Extract form ID from the request URL
+    const url = new URL(request.url);
+    const formId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
 
     // Fetch the form with its fields
     const form = await prisma.form.findUnique({
@@ -23,10 +25,10 @@ export async function GET(request: NextRequest, { params }: { params: { formId: 
           },
         },
       },
-    })
+    });
 
     if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 })
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
     // Transform the data to match the expected format
@@ -42,12 +44,14 @@ export async function GET(request: NextRequest, { params }: { params: { formId: 
         required: field.required,
         options: field.options ? JSON.parse(field.options as string) : [],
       })),
-    }
+    };
 
-    return NextResponse.json(transformedForm)
+    return NextResponse.json(transformedForm);
   } catch (error) {
-    console.error(`Error fetching form ${params.formId}:`, error)
-    return NextResponse.json({ error: "Failed to fetch form" }, { status: 500 })
+    // console.error(`Error fetching form:`, error);
+    return NextResponse.json(
+      { error: "Failed to fetch form" },
+      { status: 500 }
+    );
   }
 }
-

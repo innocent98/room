@@ -1,10 +1,12 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 
-export async function POST(request: NextRequest, { params }: { params: { formId: string } }) {
+export async function POST(request: NextRequest) {
   try {
-    const formId = params.formId
-    const responseData = await request.json()
+    // ✅ Extract form ID from the request URL
+    const url = new URL(request.url);
+    const formId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
+    const responseData = await request.json();
 
     // Check if form exists and is published
     const form = await prisma.form.findUnique({
@@ -15,10 +17,13 @@ export async function POST(request: NextRequest, { params }: { params: { formId:
       include: {
         fields: true,
       },
-    })
+    });
 
     if (!form) {
-      return NextResponse.json({ error: "Form not found or not published" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Form not found or not published" },
+        { status: 404 }
+      );
     }
 
     // Create the response with answers in a transaction
@@ -26,34 +31,37 @@ export async function POST(request: NextRequest, { params }: { params: { formId:
       // Create the response
       const response = await tx.response.create({
         data: {
-          formId,
+          formId: formId || "",
         },
-      })
+      });
 
       // Create answers for each field
-      const answers = []
+      const answers = [];
       for (const field of form.fields) {
-        const value = responseData[field.id]
+        const value = responseData[field.id];
 
         // Skip if no value provided and field is not required
         if (value === undefined && !field.required) {
-          continue
+          continue;
         }
 
         // Validate required fields
-        if (field.required && (value === undefined || value === null || value === "")) {
-          throw new Error(`Field ${field.label} is required`)
+        if (
+          field.required &&
+          (value === undefined || value === null || value === "")
+        ) {
+          throw new Error(`Field ${field.label} is required`);
         }
 
         // Format the value based on field type
-        let formattedValue = value
+        let formattedValue = value;
 
         if (field.type === "checkbox" && Array.isArray(value)) {
-          formattedValue = JSON.stringify(value)
+          formattedValue = JSON.stringify(value);
         } else if (value === undefined || value === null) {
-          formattedValue = ""
+          formattedValue = "";
         } else if (typeof value !== "string") {
-          formattedValue = String(value)
+          formattedValue = String(value);
         }
 
         // Create the answer
@@ -63,33 +71,35 @@ export async function POST(request: NextRequest, { params }: { params: { formId:
             responseId: response.id,
             value: formattedValue,
           },
-        })
+        });
 
-        answers.push(answer)
+        answers.push(answer);
       }
 
       return {
         response,
         answers,
-      }
-    })
+      };
+    });
 
     return NextResponse.json(
       {
         success: true,
         responseId: newResponse.response.id,
       },
-      { status: 201 },
-    )
+      { status: 201 }
+    );
   } catch (error) {
     // console.error(`Error submitting response for form ${params.formId}:`, error)
 
     // Handle validation errors
     if (error instanceof Error && error.message.includes("is required")) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ error: "Failed to submit form response" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to submit form response" },
+      { status: 500 }
+    );
   }
 }
-

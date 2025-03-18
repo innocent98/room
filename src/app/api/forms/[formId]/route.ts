@@ -3,13 +3,12 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { formId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
-    const formId = params.formId;
+    // ✅ Extract form ID from the request URL
+    const url = new URL(request.url);
+    const formId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     // Check if form exists
     const form = await prisma.form.findUnique({
@@ -52,7 +51,7 @@ export async function GET(
 
     return NextResponse.json(transformedForm);
   } catch (error) {
-    console.error(`Error fetching form ${params.formId}:`, error);
+    console.error(`Error fetching form:`, error);
     return NextResponse.json(
       { error: "Failed to fetch form" },
       { status: 500 }
@@ -60,10 +59,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { formId: string } }
-) {
+export async function PUT(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
 
@@ -71,7 +67,10 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formId = params.formId;
+    // ✅ Extract form ID from the request URL
+    const url = new URL(request.url);
+    const formId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
+
     const updates = await request.json();
 
     // Check if form exists and belongs to the user
@@ -177,7 +176,7 @@ export async function PUT(
 
     return NextResponse.json(transformedForm);
   } catch (error) {
-    console.error(`Error updating form ${params.formId}:`, error);
+    // console.error(`Error updating form`, error);
     return NextResponse.json(
       { error: "Failed to update form" },
       { status: 500 }
@@ -185,10 +184,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { formId: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
 
@@ -196,7 +192,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formId = params.formId;
+    // ✅ Extract form ID from the request URL
+    const url = new URL(request.url);
+    const formId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     // Check if form exists and belongs to the user
     const form = await prisma.form.findUnique({
@@ -218,7 +216,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(`Error deleting form ${params.formId}:`, error);
+    // console.error(`Error deleting form:`, error);
     return NextResponse.json(
       { error: "Failed to delete form" },
       { status: 500 }

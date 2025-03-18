@@ -1,25 +1,28 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
-export async function GET(request: NextRequest, { params }: { params: { formId: string; responseId: string } }) {
+export async function GET(request: NextRequest) {
   try {
-    const session:any = await getServerSession(authOptions)
-    const { formId, responseId } = params
+    const session: any = await getServerSession(authOptions);
+    // ✅ Extract form ID from the request URL
+    const url = new URL(request.url);
+    const formId = url.pathname.split("/").at(-3); // Extracts the [id] from URL
+    const responseId = url.pathname.split("/").at(-1); // Extracts the [id] from URL
 
     // Check if form exists and belongs to the user
     const form = await prisma.form.findUnique({
       where: { id: formId },
       select: { userId: true },
-    })
+    });
 
     if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 })
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
     if (form.userId !== session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Fetch the response with its answers
@@ -35,22 +38,25 @@ export async function GET(request: NextRequest, { params }: { params: { formId: 
           },
         },
       },
-    })
+    });
 
     if (!response) {
-      return NextResponse.json({ error: "Response not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Response not found" },
+        { status: 404 }
+      );
     }
 
     // Transform the data to a more usable format
-    const formattedAnswers: Record<string, any> = {}
+    const formattedAnswers: Record<string, any> = {};
 
     response.answers.forEach((answer) => {
       // Format the value based on field type
-      let value = answer.value
+      let value = answer.value;
 
       if (answer.field.type === "checkbox" && value.startsWith("[")) {
         try {
-          value = JSON.parse(value)
+          value = JSON.parse(value);
         } catch (e) {
           // If parsing fails, keep the original value
         }
@@ -61,20 +67,22 @@ export async function GET(request: NextRequest, { params }: { params: { formId: 
         label: answer.field.label,
         type: answer.field.type,
         value,
-      }
-    })
+      };
+    });
 
     const transformedResponse = {
       id: response.id,
       formId: response.formId,
       createdAt: response.createdAt.toISOString(),
       answers: formattedAnswers,
-    }
+    };
 
-    return NextResponse.json(transformedResponse)
+    return NextResponse.json(transformedResponse);
   } catch (error) {
-    console.error(`Error fetching response ${params.responseId}:`, error)
-    return NextResponse.json({ error: "Failed to fetch response" }, { status: 500 })
+    // console.error(`Error fetching response ${params.responseId}:`, error);
+    return NextResponse.json(
+      { error: "Failed to fetch response" },
+      { status: 500 }
+    );
   }
 }
-
