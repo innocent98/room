@@ -156,7 +156,7 @@ export default function AllResponsesPage() {
           </Link>
           <h1 className="text-xl font-bold">All Forms & Responses</h1>
         </div>
-        <Link href="/create">
+        <Link href="/dashboard/form/create">
           <Button type="primary" icon={<PlusOutlined />}>
             Create New Form
           </Button>

@@ -16,6 +16,7 @@ import {
 } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import Link from "next/link";
+import Image from "next/image";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -89,6 +90,11 @@ export default function ResponseDetail() {
     const { type, value } = answer;
 
     switch (type) {
+      case "signature":
+        return (
+          <img src={value} alt="Signature" style={{ width: 150, height: 100 }} />
+        );
+
       case "checkbox":
         if (Array.isArray(value)) {
           return value.map((item, index) => (

@@ -1,8 +1,8 @@
 "use client";
 
 import "@ant-design/v5-patch-for-react-19";
-import { useState, useCallback, useEffect } from "react";
-import { Layout, Button, Tooltip, message, Input } from "antd";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Layout, Button, Tooltip, message, Input, Modal } from "antd";
 import {
   ArrowLeftOutlined,
   SaveOutlined,
@@ -39,9 +39,15 @@ export default function FormCreationPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [formSettings, setFormSettings] = useState<any>({});
+  const [isPublished, setIsPublished] = useState(false);
+  const [showPublishWarning, setShowPublishWarning] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Create a stable reference to the save function
+  const saveFormRef = useRef<any>(null);
 
   // Check for draft or template parameters
   useEffect(() => {
@@ -67,13 +73,15 @@ export default function FormCreationPage() {
 
       const data = await response.json();
       setFormTitle(data.title);
-      setFormDesc(data.description);
-      setFormFields(data.fields);
+      setFormDesc(data.description || "");
+      setFormFields(data.fields || []);
       setFormId(data.id);
+      setFormSettings(data.settings || {});
+      setIsPublished(data.published || false);
 
       message.success("Draft loaded successfully");
     } catch (error) {
-      // console.error("Error fetching draft:", error);
+      console.error("Error fetching draft:", error);
       message.error("Failed to load draft");
     }
   };
@@ -139,6 +147,10 @@ export default function FormCreationPage() {
     [setFormFields]
   );
 
+  const updateSettings = useCallback((newSettings: any) => {
+    setFormSettings(newSettings);
+  }, []);
+
   const saveForm = useCallback(async () => {
     setIsSaving(true);
 
@@ -150,6 +162,7 @@ export default function FormCreationPage() {
         fields: formFields,
         isDraft: true,
         published: false,
+        settings: formSettings,
       };
 
       // Check if form already exists
@@ -189,7 +202,12 @@ export default function FormCreationPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [formId, formTitle, formFields, formDescription]);
+  }, [formId, formTitle, formDescription, formFields, formSettings]);
+
+  // Update the ref whenever the saveForm function changes
+  useEffect(() => {
+    saveFormRef.current = saveForm;
+  }, [saveForm]);
 
   const publishForm = useCallback(async () => {
     setIsPublishing(true);
@@ -214,12 +232,13 @@ export default function FormCreationPage() {
         throw new Error("Failed to publish form");
       }
 
+      setIsPublished(true);
       message.success("Form published successfully");
 
       // Redirect to the published form
       router.push(`/dashboard/form/${formId}/view`);
     } catch (error) {
-      // console.error("Error publishing form:", error);
+      console.error("Error publishing form:", error);
       message.error("Failed to publish form");
     } finally {
       setIsPublishing(false);
@@ -238,18 +257,53 @@ export default function FormCreationPage() {
     setShowTemplateModal(false);
   };
 
-  const saveFormDebounced = useCallback(
+  // Modified auto-save function that checks if the form is published
+  const autoSaveForm = useCallback(() => {
+    if (formFields.length > 0) {
+      if (isPublished) {
+        // If the form is published, show a warning before saving
+        setShowPublishWarning(true);
+      } else {
+        // If not published, save as normal
+        saveFormRef.current();
+      }
+    }
+  }, [formFields, isPublished]);
+
+  // Create a debounced version of the autoSaveForm function
+  const autoSaveFormDebounced = useCallback(
     debounce(() => {
-      if (formFields.length > 0) saveForm();
-    }, 3000),
-    [formFields] // Depend only on formFields
+      autoSaveForm();
+    }, 30000),
+    [autoSaveForm]
   );
 
   // Auto-save every 30 seconds
   useEffect(() => {
-    saveFormDebounced();
-    return saveFormDebounced.cancel; // Cleanup
-  }, [formFields]);
+    autoSaveFormDebounced();
+    return autoSaveFormDebounced.cancel; // Cleanup
+  }, [
+    formFields,
+    formSettings,
+    formTitle,
+    formDescription,
+    autoSaveFormDebounced,
+  ]);
+
+  // Handle manual save with warning for published forms
+  const handleManualSave = () => {
+    if (isPublished) {
+      setShowPublishWarning(true);
+    } else {
+      saveForm();
+    }
+  };
+
+  // Handle confirmation from the warning modal
+  const handleConfirmSave = () => {
+    setShowPublishWarning(false);
+    saveForm();
+  };
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -292,7 +346,7 @@ export default function FormCreationPage() {
             <ShareButton formId={formId} formTitle={formTitle} />
             <Button
               icon={<SaveOutlined />}
-              onClick={saveForm}
+              onClick={handleManualSave}
               loading={isSaving}
             >
               Save Draft
@@ -312,6 +366,15 @@ export default function FormCreationPage() {
             <Sidebar addField={addField} />
           </Sider>
           <Content className="p-6 bg-gray-100">
+            {formSettings?.bannerImage && (
+              <div className="mb-6 rounded-lg overflow-hidden shadow-sm">
+                <img
+                  src={formSettings.bannerImage || "/placeholder.svg"}
+                  alt="Form Banner"
+                  className="w-full h-auto object-cover max-h-48"
+                />
+              </div>
+            )}
             {formFields.length > 0 ? (
               formFields.map((field: any, index: number) => (
                 <FormPreview
@@ -355,6 +418,7 @@ export default function FormCreationPage() {
                 field={selectedField}
                 updateField={updateField}
                 deleteField={deleteField}
+                formFields={formFields}
               />
             ) : (
               <FormSettings
@@ -363,6 +427,8 @@ export default function FormCreationPage() {
                 setFormTitle={setFormTitle}
                 setFormDesc={setFormDesc}
                 formFields={formFields}
+                settings={formSettings}
+                updateSettings={updateSettings}
               />
             )}
           </Sider>
@@ -379,6 +445,24 @@ export default function FormCreationPage() {
         onClose={() => setShowTemplateModal(false)}
         onSelectTemplate={handleSelectTemplate}
       />
+
+      <Modal
+        title="Warning: Form is Published"
+        open={showPublishWarning}
+        onOk={handleConfirmSave}
+        onCancel={() => setShowPublishWarning(false)}
+        okText="Save as Draft"
+        cancelText="Cancel"
+      >
+        <p>
+          This form is currently published and accessible to users. Saving
+          changes will unpublish the form.
+        </p>
+        <p>
+          For the form to be accessible again, you will need to publish it after
+          saving your changes.
+        </p>
+      </Modal>
     </DndProvider>
   );
 }

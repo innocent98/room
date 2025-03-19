@@ -6,23 +6,26 @@ export async function POST(request: NextRequest) {
     // ✅ Extract form ID from the request URL
     const url = new URL(request.url);
     const formId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
-    const responseData = await request.json();
+    // const responseData = await request.json();
+    const formData = await request.json();
 
-    // Check if form exists and is published
+    // Check if the form exists and is published
     const form = await prisma.form.findUnique({
-      where: {
-        id: formId,
-        status: "published",
-      },
+      where: { id: formId },
       include: {
-        fields: true,
+        settings: true,
+        fields: true
       },
     });
 
     if (!form) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
+
+    if (form.status !== "published") {
       return NextResponse.json(
-        { error: "Form not found or not published" },
-        { status: 404 }
+        { error: "This form is not published" },
+        { status: 403 }
       );
     }
 
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
       // Create answers for each field
       const answers = [];
       for (const field of form.fields) {
-        const value = responseData[field.id];
+        const value = formData[field.id];
 
         // Skip if no value provided and field is not required
         if (value === undefined && !field.required) {
@@ -82,23 +85,89 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // Create the form response
+    // const response = await prisma.response.create({
+    //   data: {
+    //     formId: formId || "",
+    //     data: JSON.stringify(formData),
+    //     answers: formData,
+    //   },
+    // });
+
     return NextResponse.json(
-      {
-        success: true,
-        responseId: newResponse.response.id,
-      },
+      { message: "Response submitted successfully", responseId: newResponse.response.id },
       { status: 201 }
     );
   } catch (error) {
-    // console.error(`Error submitting response for form ${params.formId}:`, error)
-
-    // Handle validation errors
-    if (error instanceof Error && error.message.includes("is required")) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
+    console.error("Error submitting form response:", error);
     return NextResponse.json(
       { error: "Failed to submit form response" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { formId: string } }
+) {
+  try {
+    const formId = params.formId;
+    const { searchParams } = new URL(request.url);
+    const page = Number.parseInt(searchParams.get("page") || "1");
+    const limit = Number.parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
+
+    // Check if the form exists
+    const form = await prisma.form.findUnique({
+      where: { id: formId },
+    });
+
+    if (!form) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
+
+    // Get the total count of responses
+    const totalCount = await prisma.response.count({
+      where: { formId },
+    });
+
+    // Fetch the responses with pagination
+    const responses = await prisma.response.findMany({
+      where: { formId },
+      include: {
+        answers: {
+          include: {
+            field: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    });
+
+    // Transform the responses
+    const transformedResponses = responses.map((response) => ({
+      id: response.id,
+      formId: response.formId,
+      answers: response.answers,
+      createdAt: response.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({
+      responses: transformedResponses,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        pages: Math.ceil(totalCount / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching form responses:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch form responses" },
       { status: 500 }
     );
   }

@@ -22,6 +22,7 @@ model User {
   hashedPassword          String?
   bio                     String?   @db.Text
   twoFactorEnabled        Boolean   @default(false)
+  twoFactorSecret         String?
   notificationPreferences String?   @db.Text
   privacySettings         String?   @db.Text
   apiKey                  String?
@@ -91,21 +92,39 @@ model Form {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  team      Team?      @relation(fields: [teamId], references: [id])
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
   fields    Field[]
   responses Response[]
+  settings  FormSettings?
+}
+
+model FormSettings {
+  id                       String  @id @default(cuid())
+  formId                   String  @unique
+  showProgressBar          Boolean @default(false)
+  allowMultipleSubmissions Boolean @default(false)
+  confirmationMessage      String? @db.Text
+  redirectUrl              String?
+  emailNotifications       Boolean @default(false)
+  notificationEmails       String? @db.Text // JSON array of emails
+  customTheme              String? @db.Text // JSON object for theme
+  bannerImage              String? // URL to banner image
+
+  form Form @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
 
 model Field {
-  id          String  @id @default(cuid())
-  formId      String
-  label       String
-  type        String
-  required    Boolean @default(false)
-  options     String? // JSON string for options
-  placeholder String?
-  order       Int
+  id               String  @id @default(cuid())
+  formId           String
+  label            String
+  type             String
+  required         Boolean @default(false)
+  options          String? @db.Text // JSON string for options
+  placeholder      String?
+  order            Int
+  description      String? @db.Text
+  conditionalLogic String? @db.Text // JSON string for conditional logic
 
   form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   answers Answer[]

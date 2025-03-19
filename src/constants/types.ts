@@ -26,6 +26,24 @@ export type Settings = {
   notifications: { webhookUrl: string; emailNotifications: boolean };
 };
 
+export interface ConditionalLogic {
+  enabled: boolean;
+  rules: ConditionalRule[];
+  action: "show" | "hide" | "require";
+}
+
+export interface ConditionalRule {
+  fieldId: string;
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "not_contains"
+    | "greater_than"
+    | "less_than";
+  value: any;
+}
+
 export interface Field {
   id: string;
   type: string;
@@ -41,7 +59,7 @@ export interface Field {
   multiple?: boolean;
   allowedFileTypes?: string[];
   maxFileSize?: number;
-  disabled?: boolean;
+  conditionalLogic?: any
 }
 
 export interface Form {
@@ -68,6 +86,7 @@ export interface FormSettings {
     backgroundColor?: string;
     textColor?: string;
   };
+  bannerImage?: string | null;
 }
 
 export interface Template {

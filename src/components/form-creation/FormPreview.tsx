@@ -4,6 +4,7 @@ import { useRef } from "react"
 import { useDrag, useDrop } from "react-dnd"
 import { Card } from "antd"
 import type { Field } from "@/constants/types"
+import { BranchesOutlined } from "@ant-design/icons"
 
 interface FormPreviewProps {
   index: number
@@ -209,6 +210,32 @@ export default function FormPreview({ index, field, moveField, onClick, isSelect
             <input type="file" className="w-full p-2 border border-gray-300 rounded-md" disabled />
           </div>
         )
+      case "signature":
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </label>
+            <div className="w-full h-32 border border-gray-300 rounded-md bg-gray-50 flex items-center justify-center">
+              <span className="text-gray-400 italic">Signature pad</span>
+            </div>
+          </div>
+        )
+      case "rating":
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </label>
+            <div className="flex space-x-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span key={star} className="text-2xl text-gray-300 cursor-not-allowed">
+                  ★
+                </span>
+              ))}
+            </div>
+          </div>
+        )
       default:
         return (
           <div className="mb-4">
@@ -226,6 +253,9 @@ export default function FormPreview({ index, field, moveField, onClick, isSelect
     }
   }
 
+  // Check if field has conditional logic
+  const hasConditionalLogic = field.conditionalLogic && field.conditionalLogic.enabled
+
   return (
     <div
       ref={ref}
@@ -233,7 +263,18 @@ export default function FormPreview({ index, field, moveField, onClick, isSelect
       onClick={onClick}
       data-handler-id={handlerId}
     >
-      <Card className={`${isSelected ? "border-2 border-indigo-500" : ""}`} hoverable>
+      <Card
+        className={`${isSelected ? "border-2 border-indigo-500" : ""}`}
+        hoverable
+        extra={
+          hasConditionalLogic && (
+            <div className="text-xs flex items-center text-blue-500">
+              <BranchesOutlined className="mr-1" />
+              <span>Conditional</span>
+            </div>
+          )
+        }
+      >
         {renderFieldPreview()}
       </Card>
     </div>

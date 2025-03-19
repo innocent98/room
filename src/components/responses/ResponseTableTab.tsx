@@ -1,88 +1,95 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Table, Button, Pagination, Empty, Spin } from "antd"
-import { EyeOutlined } from "@ant-design/icons"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import { Table, Button, Pagination, Empty, Spin } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 
 interface ResponsesTableTabProps {
-  formId: string
-  formFields: any[]
-  loading: boolean
+  formId: string;
+  formFields: any[];
+  loading: boolean;
   filters: {
-    keyword: string
-    dateRange: any
-    answerType: string
-  }
+    keyword: string;
+    dateRange: any;
+    answerType: string;
+  };
 }
 
-export default function ResponsesTableTab({ formId, formFields, loading, filters }: ResponsesTableTabProps) {
-  const router = useRouter()
-  const [responses, setResponses] = useState<any[]>([])
+export default function ResponsesTableTab({
+  formId,
+  formFields,
+  loading,
+  filters,
+}: ResponsesTableTabProps) {
+  const router = useRouter();
+  const [responses, setResponses] = useState<any[]>([]);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
-  })
-  const [tableLoading, setTableLoading] = useState(true)
+  });
+  const [tableLoading, setTableLoading] = useState(true);
 
   useEffect(() => {
-    fetchResponses()
-  }, [formId, pagination.current, pagination.pageSize, filters])
+    fetchResponses();
+  }, [formId, pagination.current, pagination.pageSize, filters]);
 
   const fetchResponses = async () => {
     try {
-      setTableLoading(true)
+      setTableLoading(true);
 
       // Build query params
       const queryParams = new URLSearchParams({
         page: pagination.current.toString(),
         limit: pagination.pageSize.toString(),
-      })
+      });
 
       if (filters.keyword) {
-        queryParams.append("search", filters.keyword)
+        queryParams.append("search", filters.keyword);
       }
 
       if (filters.dateRange && filters.dateRange.length === 2) {
-        queryParams.append("startDate", filters.dateRange[0].toISOString())
-        queryParams.append("endDate", filters.dateRange[1].toISOString())
+        queryParams.append("startDate", filters.dateRange[0].toISOString());
+        queryParams.append("endDate", filters.dateRange[1].toISOString());
       }
 
       if (filters.answerType) {
-        queryParams.append("answerType", filters.answerType)
+        queryParams.append("answerType", filters.answerType);
       }
 
-      const response = await fetch(`/api/forms/${formId}/responses/list?${queryParams.toString()}`)
+      const response = await fetch(
+        `/api/forms/${formId}/responses/list?${queryParams.toString()}`
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch responses")
+        throw new Error("Failed to fetch responses");
       }
 
-      const data = await response.json()
-      setResponses(data.responses)
+      const data = await response.json();
+      setResponses(data.responses);
       setPagination({
         ...pagination,
         total: data.pagination.total,
-      })
+      });
     } catch (error) {
-      console.error("Error fetching responses:", error)
+      console.error("Error fetching responses:", error);
     } finally {
-      setTableLoading(false)
+      setTableLoading(false);
     }
-  }
+  };
 
   const handlePageChange = (page: number, pageSize?: number) => {
     setPagination({
       ...pagination,
       current: page,
       pageSize: pageSize || pagination.pageSize,
-    })
-  }
+    });
+  };
 
   const handleViewResponse = (responseId: string) => {
-    router.push(`/dashboard/form/${formId}/responses/${responseId}`)
-  }
+    router.push(`/dashboard/form/${formId}/responses/${responseId}`);
+  };
 
   // Create columns for the table based on form fields
   const columns = [
@@ -101,10 +108,21 @@ export default function ResponsesTableTab({ formId, formFields, loading, filters
         dataIndex: ["answers", field.id, "value"],
         key: field.id,
         render: (value: any) => {
-          if (Array.isArray(value)) {
-            return value.join(", ")
+          if (field.type.toLowerCase() === "signature" && value) {
+            return (
+              <img
+                src={value}
+                alt="Signature"
+                style={{ width: 100, height: 50 }}
+              />
+            );
           }
-          return value || "-"
+
+          if (Array.isArray(value)) {
+            return value.join(", ");
+          }
+
+          return value || "-";
         },
         ellipsis: true,
       })),
@@ -112,9 +130,14 @@ export default function ResponsesTableTab({ formId, formFields, loading, filters
       title: "Actions",
       key: "actions",
       width: 120,
-      render: (_: any, record: any) => <Button icon={<EyeOutlined />} onClick={() => handleViewResponse(record.id)} />,
+      render: (_: any, record: any) => (
+        <Button
+          icon={<EyeOutlined />}
+          onClick={() => handleViewResponse(record.id)}
+        />
+      ),
     },
-  ]
+  ];
 
   if (loading || tableLoading) {
     return (
@@ -122,16 +145,22 @@ export default function ResponsesTableTab({ formId, formFields, loading, filters
         <Spin size="large" />
         <div className="mt-4">Loading responses...</div>
       </div>
-    )
+    );
   }
 
   if (responses.length === 0) {
-    return <Empty description="No responses match your search criteria" />
+    return <Empty description="No responses match your search criteria" />;
   }
 
   return (
     <div>
-      <Table dataSource={responses} columns={columns} rowKey="id" pagination={false} scroll={{ x: "max-content" }} />
+      <Table
+        dataSource={responses}
+        columns={columns}
+        rowKey="id"
+        pagination={false}
+        scroll={{ x: "max-content" }}
+      />
       <div className="mt-4 flex justify-end">
         <Pagination
           current={pagination.current}
@@ -143,6 +172,5 @@ export default function ResponsesTableTab({ formId, formFields, loading, filters
         />
       </div>
     </div>
-  )
+  );
 }
-

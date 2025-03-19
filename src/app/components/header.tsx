@@ -13,6 +13,7 @@ import {
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline"
 import { UserCircleIcon } from "@heroicons/react/24/solid"
+import { signOut } from "next-auth/react"
 
 interface Notification {
   id: string
@@ -275,7 +276,7 @@ export default function Header() {
                       Settings
                     </Link>
                     <button
-                      onClick={handleLogout}
+                      onClick={() => signOut()}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <div className="flex items-center">
