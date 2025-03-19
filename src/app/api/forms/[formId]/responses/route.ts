@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       where: { id: formId },
       include: {
         settings: true,
-        fields: true
+        fields: true,
       },
     });
 
@@ -95,7 +95,10 @@ export async function POST(request: NextRequest) {
     // });
 
     return NextResponse.json(
-      { message: "Response submitted successfully", responseId: newResponse.response.id },
+      {
+        message: "Response submitted successfully",
+        responseId: newResponse.response.id,
+      },
       { status: 201 }
     );
   } catch (error) {
@@ -107,12 +110,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { formId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const formId = params.formId;
+    // ✅ Extract form ID from the request URL
+    const url = new URL(request.url);
+    const formId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
+
     const { searchParams } = new URL(request.url);
     const page = Number.parseInt(searchParams.get("page") || "1");
     const limit = Number.parseInt(searchParams.get("limit") || "10");
