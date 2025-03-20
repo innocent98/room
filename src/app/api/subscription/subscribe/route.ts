@@ -5,9 +5,9 @@ import { prisma } from "@/lib/db"
 import Stripe from "stripe"
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY! || '', {
-  apiVersion: "2025-02-24.acacia",
-})
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY! || '', {
+//   apiVersion: "2025-02-24.acacia",
+// })
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,36 +50,36 @@ export async function POST(request: NextRequest) {
       stripeCustomerId = user.subscriptions[0].stripeCustomerId
     } else {
       // Create a new Stripe customer
-      const customer = await stripe.customers.create({
-        email: user.email || undefined,
-        name: user.name || undefined,
-        metadata: {
-          userId: user.id,
-        },
-      })
-      stripeCustomerId = customer.id
-    }
+    //   const customer = await stripe.customers.create({
+    //     email: user.email || undefined,
+    //     name: user.name || undefined,
+    //     metadata: {
+    //       userId: user.id,
+    //     },
+    //   })
+    //   stripeCustomerId = customer.id
+    // }
 
     // Create a checkout session
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId || undefined,
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price: plan.stripePriceId || undefined,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/billing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
-      metadata: {
-        userId: user.id,
-        planId: plan.id,
-      },
-    })
+    // const checkoutSession = await stripe.checkout.sessions.create({
+    //   customer: stripeCustomerId || undefined,
+    //   payment_method_types: ["card"],
+    //   line_items: [
+    //     {
+    //       price: plan.stripePriceId || undefined,
+    //       quantity: 1,
+    //     },
+    //   ],
+    //   mode: "subscription",
+    //   success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/billing?success=true`,
+    //   cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
+    //   metadata: {
+    //     userId: user.id,
+    //     planId: plan.id,
+      }
+    // })
 
-    return NextResponse.json({ url: checkoutSession.url })
+    return NextResponse.json({ url: 'checkoutSession.url' })
   } catch (error) {
     console.error("Error creating subscription:", error)
     return NextResponse.json({ error: "Failed to create subscription" }, { status: 500 })

@@ -5,9 +5,9 @@ import { prisma } from "@/lib/db"
 import Stripe from "stripe"
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY! || '', {
-  apiVersion: "2025-02-24.acacia",
-})
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY! || '', {
+//   apiVersion: "2025-02-24.acacia",
+// })
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Cancel the subscription at the end of the billing period
-    await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    })
+    // await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+    //   cancel_at_period_end: true,
+    // })
 
     // Update the subscription in the database
     await prisma.subscription.update({
