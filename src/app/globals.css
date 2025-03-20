@@ -59,3 +59,94 @@
   }
 }
 
+/* Form animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-field-enter {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Form field focus effects */
+.ant-form-item-control-input-content .ant-input:focus,
+.ant-form-item-control-input-content .ant-select-selector:focus,
+.ant-form-item-control-input-content .ant-picker:focus {
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+.ant-btn {
+  transition: all 0.3s ease;
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+/* Card hover effects */
+.ant-card {
+  transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Progress bar animation */
+.ant-progress-bg {
+  transition: all 0.5s ease;
+}
+
+/* Form field animations */
+.ant-form-item {
+  transition: all 0.3s ease;
+}
+
+/* Signature pad styling */
+.signature-pad {
+  border: 2px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.signature-pad:hover {
+  border-color: #d9d9d9;
+}
+
+.signature-pad:focus-within {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+

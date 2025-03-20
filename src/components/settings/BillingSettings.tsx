@@ -1,255 +1,454 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { message, Modal } from "antd"
-import { CreditCardIcon } from "@heroicons/react/24/outline"
+import {
+  Card,
+  Typography,
+  Button,
+  Divider,
+  Badge,
+  Progress,
+  Tabs,
+  Spin,
+  Alert,
+  Table,
+  Tag,
+  Space,
+  Statistic,
+  Row,
+  Col,
+  Modal,
+  Empty,
+} from "antd"
+import {
+  CreditCardOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ReloadOutlined,
+  BarChartOutlined,
+  FileTextOutlined,
+  TeamOutlined,
+  KeyOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "react-hot-toast"
 
-interface BillingData {
-  plan: {
-    name: string
-    status: string
-    renewalDate: string
-  }
-  paymentMethods: {
-    id: string
-    type: string
-    last4: string
-    expiryDate: string
-    isDefault: boolean
-  }[]
-  invoices: {
-    id: string
-    date: string
-    description: string
-    amount: string
-    status: string
-  }[]
-}
+const { Title, Text, Paragraph } = Typography
+const { TabPane } = Tabs
+const { confirm } = Modal
 
 export default function BillingSettings() {
-  const [loading, setLoading] = useState(false)
-  const [billingData, setBillingData] = useState<BillingData | null>(null)
-  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [plans, setPlans] = useState<any[]>([])
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null)
+  const [subscription, setSubscription] = useState<any>(null)
+  const [usageStats, setUsageStats] = useState<any>(null)
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([])
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    fetchBillingData()
-  }, [])
+    const success = searchParams.get("success")
+    if (success === "true") {
+      toast.success("Subscription updated successfully!")
+    }
 
-  const fetchBillingData = async () => {
+    fetchPlans()
+    fetchUsageStats()
+  }, [searchParams])
+
+  const fetchPlans = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/user/billing")
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch billing data")
-      }
-
+      const response = await fetch("/api/subscription/plans")
       const data = await response.json()
-      setBillingData(data)
+      setPlans(data.plans)
+      setCurrentPlan(data.currentPlan)
     } catch (error) {
-      console.error("Error fetching billing data:", error)
-      message.error("Failed to load billing data")
-
-      // Set mock data if API fails
-      setBillingData({
-        plan: {
-          name: "Pro Plan",
-          status: "Active",
-          renewalDate: "October 15, 2023",
-        },
-        paymentMethods: [
-          {
-            id: "pm_1",
-            type: "Visa",
-            last4: "4242",
-            expiryDate: "12/2024",
-            isDefault: true,
-          },
-        ],
-        invoices: [
-          {
-            id: "inv_1",
-            date: "Sep 15, 2023",
-            description: "Pro Plan - Monthly",
-            amount: "$29.99",
-            status: "Paid",
-          },
-          {
-            id: "inv_2",
-            date: "Aug 15, 2023",
-            description: "Pro Plan - Monthly",
-            amount: "$29.99",
-            status: "Paid",
-          },
-        ],
-      })
+      console.error("Error fetching plans:", error)
+      toast.error("Failed to load subscription plans")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleChangePlan = () => {
-    message.info("Plan change functionality will be implemented soon")
+  const fetchUsageStats = async () => {
+    try {
+      const response = await fetch("/api/subscription/usage")
+      const data = await response.json()
+      setUsageStats(data.usage)
+      setSubscription(data.subscription)
+    } catch (error) {
+      console.error("Error fetching usage stats:", error)
+      toast.error("Failed to load usage statistics")
+    }
+  }
+
+  const handleSubscribe = async (planId: string) => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/subscription/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ planId }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || "Failed to create subscription")
+      }
+    } catch (error) {
+      console.error("Error subscribing to plan:", error)
+      toast.error("Failed to subscribe to plan")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancelSubscription = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("/api/user/subscription", {
-        method: "DELETE",
-      })
+    confirm({
+      title: "Are you sure you want to cancel your subscription?",
+      icon: <ExclamationCircleOutlined />,
+      content: "You'll still have access until the end of your billing period.",
+      onOk: async () => {
+        try {
+          setLoading(true)
+          const response = await fetch("/api/subscription/cancel", {
+            method: "POST",
+          })
 
-      if (!response.ok) {
-        throw new Error("Failed to cancel subscription")
-      }
-
-      message.success("Subscription cancelled successfully")
-
-      // Update the billing data
-      if (billingData) {
-        setBillingData({
-          ...billingData,
-          plan: {
-            ...billingData.plan,
-            status: "Cancelled",
-          },
-        })
-      }
-    } catch (error) {
-      console.error("Error cancelling subscription:", error)
-      message.error("Failed to cancel subscription")
-    } finally {
-      setLoading(false)
-      setShowCancelModal(false)
-    }
+          if (response.ok) {
+            toast.success("Subscription canceled successfully")
+            fetchUsageStats() // Refresh subscription data
+          } else {
+            const data = await response.json()
+            throw new Error(data.error || "Failed to cancel subscription")
+          }
+        } catch (error) {
+          console.error("Error canceling subscription:", error)
+          toast.error("Failed to cancel subscription")
+        } finally {
+          setLoading(false)
+        }
+      },
+    })
   }
 
-  const handleEditPaymentMethod = () => {
-    message.info("Payment method editing will be implemented soon")
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A"
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
   }
 
-  const handleAddPaymentMethod = () => {
-    message.info("Adding payment method will be implemented soon")
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount)
   }
 
-  if (!billingData) {
-    return (
-      <div className="text-center py-8">
-        <p>Loading billing information...</p>
-      </div>
-    )
-  }
+  const paymentColumns = [
+    {
+      title: "Date",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (text: string) => formatDate(text),
+    },
+    {
+      title: "Amount",
+      dataIndex: "amount",
+      key: "amount",
+      render: (amount: number) => formatCurrency(amount),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => (
+        <Tag color={status === "succeeded" ? "success" : "error"}>
+          {status === "succeeded" ? (
+            <Space>
+              <CheckCircleOutlined />
+              Succeeded
+            </Space>
+          ) : (
+            <Space>
+              <CloseCircleOutlined />
+              Failed
+            </Space>
+          )}
+        </Tag>
+      ),
+    },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+    },
+  ]
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-6">Billing & Subscription</h2>
+    <div className="container mx-auto p-4">
+      <Title level={2} style={{ marginBottom: 24 }}>
+        Billing & Subscription
+      </Title>
 
-      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-indigo-800">{billingData.plan.name}</h3>
-          <span className="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">
-            {billingData.plan.status}
-          </span>
-        </div>
-        <p className="text-indigo-700 mb-4">Your subscription renews on {billingData.plan.renewalDate}</p>
-        <div className="flex space-x-4">
-          <button
-            className="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-50 font-medium"
-            onClick={handleChangePlan}
-          >
-            Change Plan
-          </button>
-          <button
-            className="text-indigo-600 hover:text-indigo-800 font-medium"
-            onClick={() => setShowCancelModal(true)}
-          >
-            Cancel Subscription
-          </button>
-        </div>
-      </div>
+      <Tabs defaultActiveKey="subscription">
+        <TabPane tab="Subscription" key="subscription">
+          {/* Current Subscription */}
+          {subscription && (
+            <Card style={{ marginBottom: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <Title level={4} style={{ margin: 0 }}>
+                  Current Subscription
+                </Title>
+                <Badge
+                  status={subscription.status === "active" ? "success" : "error"}
+                  text={subscription.status === "active" ? "Active" : "Canceled"}
+                />
+              </div>
 
-      <div className="mb-8">
-        <h3 className="text-lg font-medium mb-4">Payment Method</h3>
-        {billingData.paymentMethods.map((method) => (
-          <div key={method.id} className="border border-gray-200 rounded-md p-4 mb-4 flex items-center">
-            <div className="bg-blue-100 p-2 rounded-md mr-4">
-              <CreditCardIcon className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-medium">
-                {method.type} ending in {method.last4}
-              </p>
-              <p className="text-sm text-gray-500">Expires {method.expiryDate}</p>
-            </div>
-            <button
-              className="ml-auto text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-              onClick={handleEditPaymentMethod}
-            >
-              Edit
-            </button>
-          </div>
-        ))}
-        <button className="text-indigo-600 hover:text-indigo-800 text-sm font-medium" onClick={handleAddPaymentMethod}>
-          + Add Payment Method
-        </button>
-      </div>
+              <Row gutter={[24, 24]}>
+                <Col xs={24} md={12}>
+                  <Text strong>Plan</Text>
+                  <Paragraph>{plans.find((p) => p.id === currentPlan)?.name || "Loading..."}</Paragraph>
+                </Col>
 
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-medium mb-4">Billing History</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoice
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {billingData.invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{invoice.date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{invoice.description}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{invoice.amount}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                      {invoice.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 hover:text-indigo-800">
-                    <a href="#">Download</a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                <Col xs={24} md={12}>
+                  <Text strong>Price</Text>
+                  <Paragraph>
+                    {plans.find((p) => p.id === currentPlan)?.price
+                      ? formatCurrency(plans.find((p) => p.id === currentPlan)?.price)
+                      : "Loading..."}{" "}
+                    / {plans.find((p) => p.id === currentPlan)?.interval || "month"}
+                  </Paragraph>
+                </Col>
 
-      <Modal
-        title="Cancel Subscription"
-        open={showCancelModal}
-        onOk={handleCancelSubscription}
-        onCancel={() => setShowCancelModal(false)}
-        okText="Yes, Cancel Subscription"
-        okButtonProps={{ danger: true, loading }}
-        cancelText="Keep Subscription"
-      >
-        <p>
-          Are you sure you want to cancel your subscription? You'll lose access to premium features at the end of your
-          current billing period.
-        </p>
-      </Modal>
+                <Col xs={24} md={12}>
+                  <Text strong>Start Date</Text>
+                  <Paragraph>{formatDate(subscription.startDate)}</Paragraph>
+                </Col>
+
+                <Col xs={24} md={12}>
+                  <Text strong>Current Period Ends</Text>
+                  <Paragraph>{formatDate(subscription.currentPeriodEnd)}</Paragraph>
+                </Col>
+              </Row>
+
+              {subscription.cancelAtPeriodEnd && (
+                <Alert
+                  message="Subscription Scheduled to Cancel"
+                  description={`Your subscription will end on ${formatDate(subscription.currentPeriodEnd)}. You'll still have access until then.`}
+                  type="warning"
+                  showIcon
+                  icon={<ClockCircleOutlined />}
+                  style={{ marginTop: 16, marginBottom: 16 }}
+                />
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                {subscription.status === "active" && !subscription.cancelAtPeriodEnd && (
+                  <Button danger onClick={handleCancelSubscription} disabled={loading}>
+                    Cancel Subscription
+                  </Button>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Available Plans */}
+          <Title level={4} style={{ marginBottom: 16 }}>
+            Available Plans
+          </Title>
+
+          <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+            {plans.map((plan) => (
+              <Col xs={24} md={8} key={plan.id}>
+                <Card
+                  style={{ height: "100%", display: "flex", flexDirection: "column" }}
+                  title={
+                    <div style={{ position: "relative" }}>
+                      {plan.name}
+                      {plan.isPopular && (
+                        <Tag color="blue" style={{ position: "absolute", right: 0, top: 0 }}>
+                          Popular
+                        </Tag>
+                      )}
+                    </div>
+                  }
+                >
+                  <Statistic
+                    value={plan.price}
+                    precision={2}
+                    valueStyle={{ fontSize: 28 }}
+                    prefix="$"
+                    suffix={`/${plan.interval}`}
+                  />
+                  <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                    {plan.description}
+                  </Paragraph>
+                  <Divider />
+                  <div style={{ marginBottom: 24 }}>
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      <Space>
+                        <FileTextOutlined />
+                        <Text>{plan.maxForms === -1 ? "Unlimited" : plan.maxForms} Forms</Text>
+                      </Space>
+                      <Space>
+                        <BarChartOutlined />
+                        <Text>{plan.maxResponses === -1 ? "Unlimited" : plan.maxResponses} Responses per Form</Text>
+                      </Space>
+                      <Space>
+                        <TeamOutlined />
+                        <Text>{plan.maxTeams === -1 ? "Unlimited" : plan.maxTeams} Teams</Text>
+                      </Space>
+                      <Space>
+                        <KeyOutlined />
+                        <Text>{plan.allowApiAccess ? "API Access" : "No API Access"}</Text>
+                      </Space>
+                    </Space>
+                  </div>
+                  <div style={{ marginTop: "auto" }}>
+                    <Button
+                      type={currentPlan === plan.id ? "default" : "primary"}
+                      block
+                      disabled={loading || currentPlan === plan.id}
+                      onClick={() => handleSubscribe(plan.id)}
+                    >
+                      {currentPlan === plan.id ? "Current Plan" : "Subscribe"}
+                    </Button>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </TabPane>
+
+        <TabPane tab="Usage" key="usage">
+          <Card>
+            <Title level={4} style={{ marginBottom: 16 }}>
+              Usage Statistics
+            </Title>
+
+            {usageStats ? (
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text strong>Forms</Text>
+                    <Text>
+                      {usageStats.forms.used} / {usageStats.forms.limit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={usageStats.forms.percentage}
+                    status={usageStats.forms.percentage > 80 ? "exception" : "normal"}
+                    showInfo={false}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text strong>Monthly Form Creation</Text>
+                    <Text>
+                      {usageStats.forms.monthlyCount} / {usageStats.forms.monthlyLimit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={usageStats.forms.monthlyPercentage}
+                    status={usageStats.forms.monthlyPercentage > 80 ? "exception" : "normal"}
+                    showInfo={false}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text strong>Responses</Text>
+                    <Text>
+                      {usageStats.responses.used} / {usageStats.responses.limit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={usageStats.responses.percentage}
+                    status={usageStats.responses.percentage > 80 ? "exception" : "normal"}
+                    showInfo={false}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text strong>Teams</Text>
+                    <Text>
+                      {usageStats.teams.used} / {usageStats.teams.limit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={usageStats.teams.percentage}
+                    status={usageStats.teams.percentage > 80 ? "exception" : "normal"}
+                    showInfo={false}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text strong>API Keys</Text>
+                    <Text>
+                      {usageStats.apiKeys.used} / {usageStats.apiKeys.limit}
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={usageStats.apiKeys.percentage}
+                    status={usageStats.apiKeys.percentage > 80 ? "exception" : "normal"}
+                    showInfo={false}
+                  />
+                  {!usageStats.apiKeys.allowed && (
+                    <Text type="danger" style={{ display: "block", marginTop: 8 }}>
+                      API access not available on your current plan
+                    </Text>
+                  )}
+                </div>
+              </Space>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 200 }}>
+                <Spin size="large" indicator={<ReloadOutlined spin />} />
+              </div>
+            )}
+          </Card>
+        </TabPane>
+
+        <TabPane tab="Payment History" key="payment-history">
+          <Card>
+            <Title level={4} style={{ marginBottom: 16 }}>
+              Payment History
+            </Title>
+
+            {paymentHistory.length > 0 ? (
+              <Table dataSource={paymentHistory} columns={paymentColumns} rowKey="id" pagination={{ pageSize: 10 }} />
+            ) : (
+              <Empty
+                image={<CreditCardOutlined style={{ fontSize: 48 }} />}
+                description={
+                  <Space direction="vertical" align="center">
+                    <Text strong>No payment history yet</Text>
+                    <Text type="secondary">Your payment history will appear here once you subscribe to a plan.</Text>
+                  </Space>
+                }
+                style={{ padding: 48 }}
+              />
+            )}
+          </Card>
+        </TabPane>
+      </Tabs>
     </div>
   )
 }

@@ -20,7 +20,7 @@ export default function ShareForm({
   formTitle,
 }: ShareFormProps) {
   const [form] = Form.useForm();
-  const shareLink = `${process.env.NEXT_PUBLIC_URL}/dashboard/form/${formId}/view`;
+  const shareLink = `${process.env.NEXT_PUBLIC_URL}/form/${formId}/view`;
 
   const [allowAnonymous, setAllowAnonymous] = useState(true);
 

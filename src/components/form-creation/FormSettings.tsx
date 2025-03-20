@@ -158,12 +158,12 @@ export default function FormSettings({
           onChange={(checked) => handleSettingChange("emailNotifications", checked)}
         />
       </Form.Item>
-      {/* <Form.Item label="Show Progress Bar">
+      <Form.Item label="Show Progress Bar">
         <Switch
           checked={settings.showProgressBar}
           onChange={(checked) => handleSettingChange("showProgressBar", checked)}
         />
-      </Form.Item> */}
+      </Form.Item>
       <Form.Item label="Confirmation Message">
         <Input.TextArea
           placeholder="Enter confirmation message"

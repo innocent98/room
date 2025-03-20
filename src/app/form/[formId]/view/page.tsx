@@ -11,19 +11,31 @@ import {
   Result,
   Spin,
   Progress,
+  Card,
+  theme,
 } from "antd";
+import {
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  CheckCircleOutlined,
+  SendOutlined,
+  LoadingOutlined,
+} from "@ant-design/icons";
 import { usePathname, useRouter } from "next/navigation";
 import FormField from "@/components/form-view/FormField";
+import { motion, AnimatePresence } from "framer-motion";
 
 const { Header, Content, Footer } = Layout;
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 export default function FormView() {
   const path = usePathname();
   const formId = path.split("/")[2];
+  const { token } = theme.useToken();
 
   const [form] = Form.useForm();
   const [formData, setFormData] = useState<any>(null);
+  const [stepFormData, setStepFormData] = useState<any>();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -41,6 +53,8 @@ export default function FormView() {
 
   // Reference to store signature data
   const signatureDataRef = useRef<Record<string, string>>({});
+  // Reference to track animation direction
+  const animationDirection = useRef<"forward" | "backward">("forward");
 
   useEffect(() => {
     const fetchFormData = async () => {
@@ -60,7 +74,6 @@ export default function FormView() {
         }
 
         const data = await response.json();
-        // console.log("Form data:", data) // Debug log
         setFormData(data);
 
         // Initialize visible fields based on conditional logic
@@ -150,13 +163,13 @@ export default function FormView() {
   };
 
   const handleSubmit = async (values: any) => {
-    console.log(values);
     try {
       setSubmitting(true);
-      // console.log("Form values:", values) // Debug log
 
       // Process signature fields if any
-      const processedValues = { ...values };
+      const processedValues = stepFormData
+        ? { ...stepFormData, ...formValues }
+        : { ...values, ...formValues };
 
       const response = await fetch(`/api/forms/${formId}/responses`, {
         method: "POST",
@@ -171,7 +184,11 @@ export default function FormView() {
         throw new Error(errorData.error || "Failed to submit form");
       }
 
-      message.success("Form submitted successfully!");
+      message.success({
+        content: "Form submitted successfully!",
+        icon: <CheckCircleOutlined style={{ color: token.colorSuccess }} />,
+        className: "custom-success-message",
+      });
       setSubmitted(true);
 
       // Mark as submitted in localStorage if multiple submissions are not allowed
@@ -211,9 +228,9 @@ export default function FormView() {
 
   // Get visible fields for the current step
   const getFieldsForCurrentStep = () => {
-    // if (!formData?.fields || !formData.settings?.showProgressBar) {
-    //   return formData?.fields || [];
-    // }
+    if (!formData?.fields || !formData.settings?.showProgressBar) {
+      return formData?.fields || [];
+    }
 
     const visibleFieldsList = formData.fields.filter(
       (field: any) => visibleFields[field.id]
@@ -235,14 +252,66 @@ export default function FormView() {
     return Math.round(((currentStep + 1) / totalSteps) * 100);
   };
 
+  const handleNextStep = async () => {
+    try {
+      const values = await form.validateFields(); // Ensure fields are validated before moving
+      setStepFormData((prev: any) => ({ ...prev, ...values }));
+      animationDirection.current = "forward";
+      setCurrentStep(currentStep + 1);
+    } catch (error) {
+      console.error("Validation failed:", error);
+    }
+  };
+
+  const handlePreviousStep = () => {
+    animationDirection.current = "backward";
+    setCurrentStep(currentStep - 1);
+  };
+
+  const isFinalStep = formData?.settings?.showProgressBar && currentStep === 2;
+
+  // Animation variants
+  const pageVariants = {
+    initial: (direction: string) => ({
+      x: direction === "forward" ? 300 : -300,
+      opacity: 0,
+    }),
+    animate: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        x: { type: "spring", stiffness: 300, damping: 30 },
+        opacity: { duration: 0.2 },
+      },
+    },
+    exit: (direction: string) => ({
+      x: direction === "forward" ? -300 : 300,
+      opacity: 0,
+      transition: {
+        x: { type: "spring", stiffness: 300, damping: 30 },
+        opacity: { duration: 0.2 },
+      },
+    }),
+  };
+
   if (loading) {
     return (
-      <Layout className="min-h-screen">
+      <Layout className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <Content className="p-6">
           <div className="max-w-3xl mx-auto">
-            <div className="text-center py-12">
-              <Spin size="large" />
-              <div className="mt-4">Loading form...</div>
+            <div className="text-center py-16 flex flex-col items-center justify-center">
+              <Spin
+                indicator={
+                  <LoadingOutlined
+                    style={{ fontSize: 40, color: token.colorPrimary }}
+                    spin
+                  />
+                }
+              />
+              <div className="mt-6 text-lg font-medium text-gray-600">
+                Loading your form...
+              </div>
+              <div className="mt-2 text-gray-400">Please wait a moment</div>
             </div>
           </div>
         </Content>
@@ -252,23 +321,29 @@ export default function FormView() {
 
   if (error || !formData) {
     return (
-      <Layout className="min-h-screen">
+      <Layout className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <Content className="p-6">
           <div className="max-w-3xl mx-auto">
             <Result
               status="404"
-              title="Form Not Found"
+              title={<span className="text-2xl font-bold">Form Not Found</span>}
               subTitle={
-                error || "Sorry, the form you are looking for does not exist."
+                <span className="text-gray-500">
+                  {error ||
+                    "Sorry, the form you are looking for does not exist."}
+                </span>
               }
               extra={
                 <Button
                   type="primary"
+                  size="large"
                   onClick={() => router.push("/dashboard")}
+                  className="rounded-lg shadow-md hover:shadow-lg transition-all"
                 >
                   Back Home
                 </Button>
               }
+              className="bg-white p-8 rounded-xl shadow-md"
             />
           </div>
         </Content>
@@ -278,21 +353,32 @@ export default function FormView() {
 
   if (submissionBlocked) {
     return (
-      <Layout className="min-h-screen">
+      <Layout className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <Content className="p-6">
           <div className="max-w-3xl mx-auto">
             <Result
               status="info"
-              title="You've Already Submitted This Form"
-              subTitle="Multiple submissions are not allowed for this form."
+              title={
+                <span className="text-2xl font-bold">
+                  You've Already Submitted This Form
+                </span>
+              }
+              subTitle={
+                <span className="text-gray-500">
+                  Multiple submissions are not allowed for this form.
+                </span>
+              }
               extra={
                 <Button
                   type="primary"
+                  size="large"
                   onClick={() => router.push("/dashboard")}
+                  className="rounded-lg shadow-md hover:shadow-lg transition-all"
                 >
                   Back Home
                 </Button>
               }
+              className="bg-white p-8 rounded-xl shadow-md"
             />
           </div>
         </Content>
@@ -302,41 +388,71 @@ export default function FormView() {
 
   if (submitted) {
     return (
-      <Layout className="min-h-screen">
+      <Layout className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <Content className="p-6">
           <div className="max-w-3xl mx-auto">
-            <Result
-              status="success"
-              title="Form Submitted Successfully!"
-              subTitle={
-                formData.settings?.successMessage ||
-                "Thank you for your submission. Your response has been recorded."
-              }
-              extra={[
-                <Button key="home" onClick={() => router.push("/dashboard")}>
-                  Back Home
-                </Button>,
-                formData.settings?.allowMultipleSubmissions !== false && (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, type: "spring" }}
+            >
+              <Result
+                status="success"
+                title={
+                  <span className="text-2xl font-bold">
+                    Form Submitted Successfully!
+                  </span>
+                }
+                subTitle={
+                  <span className="text-gray-500">
+                    {formData.settings?.successMessage ||
+                      "Thank you for your submission. Your response has been recorded."}
+                  </span>
+                }
+                extra={[
                   <Button
-                    key="another"
-                    type="primary"
-                    onClick={() => {
-                      setSubmitted(false);
-                      form.resetFields();
-                      setCurrentStep(0);
-                      signatureDataRef.current = {};
-                    }}
+                    key="home"
+                    size="large"
+                    onClick={() => router.push("/dashboard")}
+                    className="rounded-lg border-gray-200 hover:border-gray-300 transition-all"
                   >
-                    Submit Another Response
-                  </Button>
-                ),
-              ]}
-            />
-            {redirectCountdown !== null && (
-              <div className="text-center mt-4">
-                <p>Redirecting in {redirectCountdown} seconds...</p>
-              </div>
-            )}
+                    Back Home
+                  </Button>,
+                  formData.settings?.allowMultipleSubmissions !== false && (
+                    <Button
+                      key="another"
+                      type="primary"
+                      size="large"
+                      onClick={() => {
+                        setSubmitted(false);
+                        form.resetFields();
+                        setCurrentStep(0);
+                        signatureDataRef.current = {};
+                      }}
+                      className="rounded-lg shadow-md hover:shadow-lg transition-all"
+                    >
+                      Submit Another Response
+                    </Button>
+                  ),
+                ]}
+                className="bg-white p-8 rounded-xl shadow-md"
+              />
+              {redirectCountdown !== null && (
+                <div className="text-center mt-6 bg-white p-4 rounded-lg shadow-sm">
+                  <motion.div
+                    initial={{ width: "100%" }}
+                    animate={{ width: `${(redirectCountdown / 5) * 100}%` }}
+                    transition={{ duration: 1, ease: "linear" }}
+                    className="h-1 bg-blue-500 rounded-full mb-3 mx-auto"
+                  />
+                  <p className="text-gray-600">
+                    Redirecting in{" "}
+                    <span className="font-semibold">{redirectCountdown}</span>{" "}
+                    seconds...
+                  </p>
+                </div>
+              )}
+            </motion.div>
           </div>
         </Content>
       </Layout>
@@ -344,85 +460,171 @@ export default function FormView() {
   }
 
   return (
-    <Layout className="min-h-screen">
-      <Header className="bg-white px-4 flex items-center">
-        <div className="max-w-3xl mx-auto w-full">
-          <Title level={4} className="m-0">
+    <Layout className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      <Header className="bg-white px-6 flex items-center shadow-sm sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
+          <Title level={4} className="m-0 text-gradient">
             {formData.title}
           </Title>
+          {formData.settings?.showProgressBar && (
+            <div className="hidden md:block">
+              <div className="flex items-center space-x-2">
+                {[0, 1, 2].map((step) => (
+                  <div
+                    key={step}
+                    className={`w-3 h-3 rounded-full ${
+                      step === currentStep
+                        ? "bg-blue-500"
+                        : step < currentStep
+                        ? "bg-green-500"
+                        : "bg-gray-200"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </Header>
 
       {formData.settings?.bannerImage && (
-        <div className="w-full">
+        <div
+          className="w-full relative overflow-hidden"
+          style={{ height: "240px" }}
+        >
           <img
             src={formData.settings.bannerImage || "/placeholder.svg"}
             alt="Form Banner"
-            className="w-full h-48 object-cover"
+            className="w-full h-full object-cover"
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-30" />
         </div>
       )}
 
       <Content className="p-6">
         <div className="max-w-3xl mx-auto">
-          <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-            <Paragraph>{formData.description}</Paragraph>
+          <Card
+            className="mb-6 border-0 rounded-xl shadow-md overflow-hidden"
+            bodyStyle={{ padding: "1.5rem" }}
+          >
+            <Paragraph className="text-lg text-gray-700">
+              {formData.description}
+            </Paragraph>
             {formData.createdBy && (
-              <Paragraph className="text-gray-500">
-                Created by: {formData.createdBy}
+              <Paragraph className="text-gray-500 mb-0">
+                <Text type="secondary">Created by:</Text> {formData.createdBy}
               </Paragraph>
             )}
-          </div>
+          </Card>
 
           {formData.settings?.showProgressBar && (
-            <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-              <Progress percent={getProgressPercentage()} status="active" />
-            </div>
+            <Card
+              className="mb-6 border-0 rounded-xl shadow-sm overflow-hidden"
+              bodyStyle={{ padding: "1.5rem" }}
+            >
+              <div className="mb-2 flex justify-between">
+                <Text type="secondary">Progress</Text>
+                <Text strong>{getProgressPercentage()}%</Text>
+              </div>
+              <Progress
+                percent={getProgressPercentage()}
+                status="active"
+                strokeColor={{
+                  "0%": token.colorPrimary,
+                  "100%": token.colorPrimaryActive,
+                }}
+                showInfo={false}
+                strokeWidth={8}
+                className="custom-progress"
+              />
+              <div className="mt-2 flex justify-between text-xs text-gray-500">
+                <span>Step {currentStep + 1} of 3</span>
+                <span>
+                  {getFieldsForCurrentStep().length} fields in this step
+                </span>
+              </div>
+            </Card>
           )}
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+          <Card
+            className="border-0 rounded-xl shadow-lg overflow-hidden"
+            bodyStyle={{ padding: "1.5rem" }}
+          >
             <Form
               form={form}
               layout="vertical"
               onFinish={handleSubmit}
               requiredMark={false}
               onValuesChange={handleValuesChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault(); // Prevent accidental form submission on Enter key
+                }
+              }}
+              className="form-with-floating-labels"
             >
-              {formData.settings?.showProgressBar
-                ? getFieldsForCurrentStep().map((field: any) => (
-                    <div key={field.id}>
-                      {visibleFields[field.id] && <FormField field={field} />}
-                    </div>
-                  ))
-                : formData.fields.map((field: any) => (
-                    <div key={field.id}>
-                      {visibleFields[field.id] && <FormField field={field} />}
-                    </div>
-                  ))}
+              <AnimatePresence mode="wait" custom={animationDirection.current}>
+                <motion.div
+                  key={currentStep}
+                  custom={animationDirection.current}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={pageVariants}
+                >
+                  {formData.settings?.showProgressBar
+                    ? getFieldsForCurrentStep().map((field: any) => (
+                        <div key={field.id} className="mb-6">
+                          {visibleFields[field.id] && (
+                            <FormField field={field} />
+                          )}
+                        </div>
+                      ))
+                    : formData.fields.map((field: any) => (
+                        <div key={field.id} className="mb-6">
+                          {visibleFields[field.id] && (
+                            <FormField field={field} />
+                          )}
+                        </div>
+                      ))}
+                </motion.div>
+              </AnimatePresence>
 
-              <Form.Item>
-                <div className="flex justify-between">
-                  {formData.settings?.showProgressBar && currentStep > 0 && (
-                    <Button onClick={() => setCurrentStep(currentStep - 1)}>
+              <Form.Item className="mb-0 mt-8">
+                <div className="flex justify-between items-center">
+                  {formData.settings?.showProgressBar && currentStep > 0 ? (
+                    <Button
+                      size="large"
+                      icon={<ArrowLeftOutlined />}
+                      onClick={handlePreviousStep}
+                      className="rounded-lg border-gray-200 hover:border-gray-300 transition-all"
+                    >
                       Previous
                     </Button>
+                  ) : (
+                    <div></div> // Empty div to maintain flex spacing
                   )}
 
                   <div className="ml-auto">
-                    {formData.settings?.showProgressBar && currentStep < 2 ? (
+                    {formData.settings?.showProgressBar && !isFinalStep ? (
                       <Button
                         type="primary"
-                        onClick={() => setCurrentStep(currentStep + 1)}
+                        size="large"
+                        onClick={handleNextStep}
+                        className="rounded-lg shadow-md hover:shadow-lg transition-all"
                       >
-                        Next
+                        Next <ArrowRightOutlined />
                       </Button>
                     ) : (
                       <Button
                         type="primary"
-                        htmlType="submit"
+                        htmlType="button"
                         size="large"
+                        icon={<SendOutlined />}
                         loading={submitting}
                         disabled={submitting}
+                        onClick={() => form.submit()}
+                        className="rounded-lg shadow-md hover:shadow-lg transition-all"
                       >
                         {submitting ? "Submitting..." : "Submit"}
                       </Button>
@@ -431,14 +633,70 @@ export default function FormView() {
                 </div>
               </Form.Item>
             </Form>
-          </div>
+          </Card>
         </div>
       </Content>
-      <Footer className="text-center">
-        <div className="text-gray-500">
+      <Footer className="text-center bg-transparent">
+        <div className="text-gray-500 py-2">
           {formData.settings?.footerText || "Powered by ROOM Form Builder"}
         </div>
       </Footer>
+
+      <style jsx global>{`
+        .text-gradient {
+          background: linear-gradient(
+            90deg,
+            ${token.colorPrimary},
+            ${token.colorPrimaryActive}
+          );
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .custom-progress .ant-progress-bg {
+          border-radius: 4px;
+        }
+
+        .form-with-floating-labels .ant-form-item-label {
+          font-weight: 500;
+        }
+
+        .form-with-floating-labels .ant-input,
+        .form-with-floating-labels .ant-select-selector,
+        .form-with-floating-labels .ant-picker {
+          border-radius: 8px;
+          border-color: #e2e8f0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s ease;
+        }
+
+        .form-with-floating-labels .ant-input:hover,
+        .form-with-floating-labels .ant-select-selector:hover,
+        .form-with-floating-labels .ant-picker:hover {
+          border-color: #cbd5e1;
+        }
+
+        .form-with-floating-labels .ant-input:focus,
+        .form-with-floating-labels .ant-select-selector:focus,
+        .form-with-floating-labels .ant-picker:focus,
+        .form-with-floating-labels .ant-input-focused,
+        .form-with-floating-labels .ant-select-focused .ant-select-selector,
+        .form-with-floating-labels .ant-picker-focused {
+          border-color: ${token.colorPrimary};
+          box-shadow: 0 0 0 2px
+            rgba(
+              ${Number.parseInt(token.colorPrimary.slice(1, 3), 16)},
+              ${Number.parseInt(token.colorPrimary.slice(3, 5), 16)},
+              ${Number.parseInt(token.colorPrimary.slice(5, 7), 16)},
+              0.2
+            );
+        }
+
+        .custom-success-message {
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+      `}</style>
     </Layout>
   );
 }

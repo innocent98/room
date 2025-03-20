@@ -1,31 +1,44 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { canReceiveResponses } from "@/lib/subscription";
 
 export async function POST(request: NextRequest) {
   try {
     // ✅ Extract form ID from the request URL
     const url = new URL(request.url);
     const formId = url.pathname.split("/").at(-2); // Extracts the [id] from URL
-    // const responseData = await request.json();
     const formData = await request.json();
+
+    // Check if the form can receive more responses based on subscription
+    const canReceive = await canReceiveResponses(formId || "");
+    if (!canReceive) {
+      return NextResponse.json(
+        {
+          error:
+            "This form has reached its response limit. The form owner needs to upgrade their plan to receive more responses.",
+          code: "RESPONSE_LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
 
     // Check if the form exists and is published
     const form = await prisma.form.findUnique({
-      where: { id: formId },
+      where: { id: formId, status: "published", disabled: false },
       include: {
         settings: true,
-        fields: true,
+        fields: {
+          where: {
+            hidden: false, // Only include visible fields
+          },
+        },
       },
     });
 
     if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
-
-    if (form.status !== "published") {
       return NextResponse.json(
-        { error: "This form is not published" },
-        { status: 403 }
+        { error: "Form not found, not published, or disabled" },
+        { status: 404 }
       );
     }
 
@@ -85,14 +98,17 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Create the form response
-    // const response = await prisma.response.create({
-    //   data: {
-    //     formId: formId || "",
-    //     data: JSON.stringify(formData),
-    //     answers: formData,
-    //   },
-    // });
+    // Update usage statistics
+    await prisma.usageStats.upsert({
+      where: { userId: form.userId },
+      update: {
+        totalResponses: { increment: 1 },
+      },
+      create: {
+        userId: form.userId,
+        totalResponses: 1,
+      },
+    });
 
     return NextResponse.json(
       {

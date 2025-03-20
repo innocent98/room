@@ -28,6 +28,9 @@ model User {
   apiKey                  String?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
+  // Added usage tracking fields
+  monthlyFormCount        Int       @default(0) // Number of forms created this month
+  lastFormCountReset      DateTime  @default(now()) // When the form count was last reset
 
   accounts        Account[]
   sessions        Session[]
@@ -40,6 +43,8 @@ model User {
   apiKeys         ApiKey[]
   integrations    Integration[]
   loginHistory    LoginHistory[]
+  // Added usage tracking relation
+  usageStats      UsageStats?
 }
 
 model Account {
@@ -91,6 +96,8 @@ model Form {
   teamId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  // Added field to track if form is disabled due to usage limits
+  disabled    Boolean  @default(false)
 
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   team      Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
@@ -125,6 +132,7 @@ model Field {
   order            Int
   description      String? @db.Text
   conditionalLogic String? @db.Text // JSON string for conditional logic
+  hidden           Boolean @default(false) // Add this line
 
   form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   answers Answer[]
@@ -160,6 +168,8 @@ model Team {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   settings    Json?    @default("{}")
+  // Added field to track max members based on subscription
+  maxMembers  Int      @default(5)
 
   owner       User             @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members     TeamMember[]
@@ -201,27 +211,47 @@ model TeamInvitation {
 }
 
 model Plan {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  price       Float
-  interval    String   @default("month") // month, year
-  features    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  price             Float
+  interval          String   @default("month") // month, year
+  features          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  // Added specific limit fields
+  maxForms          Int      @default(2) // Maximum number of forms
+  maxResponses      Int      @default(10) // Maximum responses per form
+  maxTeams          Int      @default(0) // Maximum number of teams
+  maxTeamMembers    Int      @default(0) // Maximum members per team
+  allowApiAccess    Boolean  @default(false) // Whether API access is allowed
+  maxApiKeys        Int      @default(0) // Maximum number of API keys
+  maxFileUploads    Int      @default(0) // Maximum file uploads
+  maxFileSize       Int      @default(0) // Maximum file size in MB
+  advancedAnalytics Boolean  @default(false) // Whether advanced analytics are available
+  priority          Int      @default(0) // Display priority (lower = displayed first)
+  isPopular         Boolean  @default(false) // Whether this is a popular plan
+  stripePriceId     String? // Stripe price ID for this plan
 
   subscriptions Subscription[]
 }
 
 model Subscription {
-  id        String    @id @default(cuid())
-  userId    String
-  planId    String
-  status    String    @default("active") // active, canceled, expired
-  startDate DateTime
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  userId               String
+  planId               String
+  status               String    @default("active") // active, canceled, expired
+  startDate            DateTime
+  endDate              DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  // Added fields for payment tracking
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  canceledAt           DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan Plan @relation(fields: [planId], references: [id])
@@ -238,8 +268,6 @@ model TeamActivity {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-// New models for API keys, integrations, and security features
 
 model ApiKey {
   id          String    @id @default(cuid())
@@ -275,4 +303,35 @@ model LoginHistory {
   location  String?
   status    String // "success" or "failed"
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// New model for tracking detailed usage statistics
+model UsageStats {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  totalForms       Int      @default(0)
+  totalResponses   Int      @default(0)
+  totalApiCalls    Int      @default(0)
+  monthlyApiCalls  Int      @default(0)
+  lastApiCallReset DateTime @default(now())
+  storageUsed      Int      @default(0) // in bytes
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// New model for payment history
+model PaymentHistory {
+  id              String   @id @default(cuid())
+  userId          String
+  amount          Float
+  currency        String   @default("USD")
+  status          String // succeeded, failed, pending
+  paymentMethod   String? // credit_card, paypal, etc.
+  paymentIntentId String? // Stripe payment intent ID
+  invoiceId       String? // Stripe invoice ID
+  description     String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
 }

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { canCreateForm, incrementFormCount } from "@/lib/subscription";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,19 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if the user can create a new form based on their subscription
+    const canCreate = await canCreateForm(session.user.id);
+    if (!canCreate) {
+      return NextResponse.json(
+        {
+          error:
+            "You have reached your form creation limit for this month. Please upgrade your plan to create more forms.",
+          code: "SUBSCRIPTION_LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
     }
 
     const formData = await request.json();
@@ -84,6 +98,9 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Increment the user's form count
+      await incrementFormCount(session.user.id);
+
       // Return the form with settings
       return tx.form.findUnique({
         where: { id: form.id },
@@ -141,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transformedForm, { status: 201 });
   } catch (error) {
-    console.error("Error creating form:", error);
+    // console.error("Error creating form:", error);
     return NextResponse.json(
       { error: "Failed to create form" },
       { status: 500 }
@@ -177,11 +194,30 @@ export async function GET(request: NextRequest) {
           },
         },
         settings: true,
+        responses: {
+          select: {
+            id: true,
+          },
+        },
       },
       orderBy: {
         updatedAt: "desc",
       },
     });
+
+    // Get the user's plan to check limits
+    const userPlan = await prisma.subscription.findFirst({
+      where: {
+        userId: session.user.id,
+        status: "active",
+      },
+      include: {
+        plan: true,
+      },
+    });
+
+    const maxResponses = userPlan?.plan?.maxResponses || 10; // Default to free plan limit
+    const isUnlimited = maxResponses === -1;
 
     // Transform the data to match the expected format
     const transformedForms = forms.map((form) => ({
@@ -203,6 +239,10 @@ export async function GET(request: NextRequest) {
       updatedAt: form.updatedAt.toISOString(),
       published: form.status === "published",
       isDraft: form.status === "draft",
+      disabled: form.disabled,
+      responseCount: form.responses.length,
+      responseLimit: isUnlimited ? "Unlimited" : maxResponses,
+      responsePercentage: isUnlimited ? 0 : Math.min(100, Math.round((form.responses.length / maxResponses) * 100)),
       settings: {
         showProgressBar: form.settings?.showProgressBar || false,
         allowMultipleSubmissions:
